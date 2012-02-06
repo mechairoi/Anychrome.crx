@@ -205,25 +205,15 @@ $( function() {
                 function(source) {
                     if(typeof source.delayed !== "undefined") {
                         var transformed = source.transformed_candidates = [];
-                        source.candidates(
-                            source.regex ? reg : q,
-                            function (candidates) { //XXX function anychrome() と重複したコード
-                                var list = source.candidates_transformer(candidates);
-                                list.forEach(
-                                    function(cand) {
-                                        if(!cand.element) {
-                                                cand.element = $("<li></li>").text(cand.name);
-                                        }
-                                    }
-                                );
-                                transformed.push.apply(transformed, list);
-                                redisplay(current_params, reg);
-                            }
-                        );
+                        source.deferred.candidates(source.regex ? reg : q).next(
+			   deferred_transform_candidates(source)
+			).next(
+			    function(){ redisplay(reg); }
+			);
                     }
                 }
             );
-            redisplay(current_params, reg);
+            redisplay(reg);
         }
     );
 
@@ -272,45 +262,42 @@ function anychrome(params) {
     set_location_hash( { sources: sources.map( function(source) { return source.name; } ) } );
     sources.forEach(
         function(source) {
+	    source.deferred = {};
+	    source.deferred.candidates = Deferred.connect(
+		(typeof (source.candidates) !== "function")
+		    ? function(callback) { callback(source.candidates); }
+		    : source.candidates,
+		{ target: source, ok: source.delayed ? 1 : 0 }
+	    );
             source.transformed_candidates = [];
             source.marked_candidates = {}; // XXX どっかで開放する.
-            if (typeof source.delayed === "undefined") {
-                if (typeof (source.candidates) === "function") {
-                    var transformed = source.transformed_candidates;
-                    source.candidates(
-                        function(candidates) { //XXX #bind change query と重複したコード
-                            var list = source.candidates_transformer(candidates);
-                            list.forEach(
-                                function(cand) {
-                                    if(!cand.element) {
-                                        cand.element = $("<li></li>").text(cand.name);
-                                    }
-                                }
-                            );
-                            transformed.push.apply(transformed, list);
-                            redisplay(params, "");
-                        }
-                    );
-                } else {
-                    source.transformed_candidates =
-                        source.candidates_transformer(source.candidates);
-                    source.transformed_candidates.forEach(
-                        function(cand) {
-                            if(!cand.element) {
-                                cand.element = $("<li></li>").text(cand.name)[0];
-                            }
-                        }
-                    );
-                    redisplay(params, "");
-                }
-            } else {
-                redisplay(params, "");
-            }
+            source.deferred.candidates("").next(
+		deferred_transform_candidates(source)
+            ).next(
+		function() { redisplay(""); }
+	    );
         }
     );
 }
 
-function redisplay(params, reg) {
+function deferred_transform_candidates (source) {
+    return function (candidates) {
+	return Deferred.next(
+	    function () {
+		var list = source.candidates_transformer(candidates);
+		list.forEach(
+		    function(cand) {
+			if(!cand.element) cand.element = $("<li></li>").text(cand.name);
+		    }
+		);
+		[].push.apply(source.transformed_candidates, list);
+	    }
+	);
+    };
+}
+
+function redisplay(reg) {
+    var params = current_params;
     var c = 0;
     var n = params.sources.length;
     $("#anychrome_candidates.anychrome_selected:first").removeClass("anychrome_selected");

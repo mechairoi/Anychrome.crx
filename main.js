@@ -145,6 +145,7 @@ $( function() {
             if(document.location.hash === "" || document.location.hash === "#") {
                 clean();
                 anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
+		$("#anychrome_query").focus();
             }
         }
     );

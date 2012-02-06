@@ -15,16 +15,7 @@
 var ac_source_tabs = {
     name: "Tabs",
     candidates: function (callback) {
-        chrome.windows.getAll(
-            { populate: true },
-            function (windows) {
-                windows.map(
-                    function(_window) {
-                        chrome.tabs.getAllInWindow(_window.id, callback); //XXX 自身 のタブは除く
-                    }
-                );
-            }
-        );
+	chrome.tabs.query({}, callback);
     },
     candidates_transformer: function (tabs) {
         return tabs.map(

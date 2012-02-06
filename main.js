@@ -199,7 +199,7 @@ $( function() {
         }
     );
 
-    anychrome( { sources: [ ac_source_history ] } );
+    anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
     $("#anychrome_query").focus();
 } );
 
@@ -284,8 +284,9 @@ function anychrome(params) {
 function redisplay(params, reg) {
     var c = 0;
     var n = params.sources.length;
-    $("#anychrome_candidates.anychrome_selected:first").addClass("anychrome_selected");
+    $("#anychrome_candidates.anychrome_selected:first").removeClass("anychrome_selected");
     $("#anychrome_candidates").empty();
+    var is_first = true;
     for (var i = 0; i < n; ++i) {
         var source = params.sources[i];
         ++c;
@@ -294,7 +295,6 @@ function redisplay(params, reg) {
         );
         var cands  = source.transformed_candidates;
         var m = cands.length;
-        var is_first = true;
         var k = 0;
         for (var j = 0; j < m; ++j) {
             var cand = cands[j];

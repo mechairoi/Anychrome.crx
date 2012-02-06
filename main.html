@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Anychrome</title>
+    <script type="text/javascript" src="jquery-1.7.1.min.js"></script>
+    <script type="text/javascript" src="jquery.textchange.min.js"></script>
+    <script type="text/javascript" src="main.js"></script>
+    <style type="text/css">
+      #anychrome_query {
+        width: 100%;
+        overflow: hidden;
+      }
+      body {
+        margin: 0px;
+        overflow-x: hidden;
+        font-size: 0.8em;
+        color: #777;
+      }
+      ul {
+        width: 100%;
+        overflow: hidden;
+        margin: 0px;
+        padding: 0px;
+      }
+      li {
+        height: 20px;
+        overflow: hidden;
+        padding: 5px;
+        border-bottom: 1px solid #fff;
+      }
+      .nowrap {
+        white-space: nowrap;
+      }
+      li.anychrome_selected {
+        border-bottom: 1px solid #7a43b6;
+      }
+      li.anychrome_marked {
+        background-color: #bbb !important; /* XXX */
+      }
+      li.anychrome_even {
+        background-color: #eee;
+      }
+      li.anychrome_section {
+        background-color: black;
+        color: white;
+        font-weight: bold;
+      }
+      img.favicon {
+        margin: 2px;
+      }
+      span.url {
+        font-size: 0.9em;
+        margin-left: 5px;
+        color: green;
+      }
+      input {
+        margin: 0px;
+        border: 0px none #fff;
+        font-size: 1.0em;
+        padding: 7px;
+        /* border: 1px solid #000; */
+      }
+      textarea {
+        margin: 0px;
+        override: hidden;
+        /* border: 1px solid #000; */
+      }
+      span.anychrome_highlighted {
+        background-color: #c09853;
+      }
+
+      ::-webkit-scrollbar
+      {
+        overflow:hidden;
+        width:8px;
+        background:#fafafa;
+        -webkit-border-radius:3px;
+        border-radius:3px;
+      }
+      ::-webkit-scrollbar-button
+      {
+        display:none;
+      }
+      ::-webkit-scrollbar-piece
+      {
+        background:#eee;
+      }
+      #scrollbar03::-webkit-scrollbar-piece:start
+      {
+        background:#eee;
+      }
+      ::-webkit-scrollbar-thumb
+      {
+        overflow:hidden;
+        -webkit-border-radius:3px;
+        border-radius:3px;
+        background:#333;
+      }
+    </style>
+  </head>
+  <body>
+    <input id="anychrome_query" type="text" spellcheck="false" autocomplete="off"/>
+    <ul id="anychrome_candidates" ></ul>
+  </body>
+</html>

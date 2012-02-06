@@ -104,19 +104,6 @@ var ac_source_history = {
     ]
 };
 
-// var regexp;
-// var query = 'kaisetu';
-
-// chrome.extension.sendRequest(
-//   'pocnedlaincikkkcmlpcbipcflgjnjlj' // ChromeMigemo の Extension ID (Extension Gallery からインストールした場合)
-//   ,{"action": "getRegExpString", "query": query}
-//   ,function(response) {
-//     console.log(response);
-//     //=> {"action":"getRegExpString", "query":"kaisetu", "result":"回折|解説|開設|kaisetu|ｋａｉｓｅｔｕ|かいせつ|カイセツ|ｶｲｾﾂ"}
-//     regexp = new RegExp(response.result, 'i');
-//   }
-// );
-
 var location_hash = {};
 function set_location_hash (hash) {
     location_hash = $.extend(location_hash, hash);
@@ -200,20 +187,51 @@ $( function() {
             if (q === prev_q) return;
             prev_q = q;
             var reg = q.replace(/([^0-9A-Za-z_])/g, '\\$1'); // quotemeta
-            reg = q === "" ? false : new RegExp(q, "i");
+
+
+	    var migemo_reg;
+	    var migemo_threshold = 100;
             current_params.sources.forEach(
                 function(source) {
-                    if(typeof source.delayed !== "undefined") {
-                        var transformed = source.transformed_candidates = [];
-                        source.deferred.candidates(source.regex ? reg : q).next(
-			   deferred_transform_candidates(source)
-			).next(
-			    function(){ redisplay(reg); }
-			);
-                    }
-                }
-            );
-            redisplay(reg);
+		    if (source.migemo && source.migemo < migemo_threshold)
+			migemo_threshold = source.migemo;
+		}
+	    );
+
+            reg = q === "" ? false : new RegExp(q, "i");
+	    (
+		(q.length >= migemo_threshold)
+		    ? Deferred.chrome.extension.sendRequest(
+			'pocnedlaincikkkcmlpcbipcflgjnjlj',
+			{"action": "getRegExpString", "query": q}
+		    ).next(
+			function (res) {
+			    console.log(res);
+			    return Deferred.next(
+				function () {
+				    reg = new RegExp(res.result, 'i');
+				}
+			    );
+			}
+		    )
+		: Deferred.next( function () {} )
+	    ).next(
+		function () {
+		    current_params.sources.forEach(
+			function(source) {
+			    if (typeof source.delayed !== "undefined") {
+				var transformed = source.transformed_candidates = [];
+				source.deferred.candidates(source.regex ? reg : q).next(
+				    deferred_transform_candidates(source)
+				).next(
+				    function(){ redisplay(reg); }
+				);
+			    }
+			}
+		    );
+		    redisplay(reg);
+		}
+	    );
         }
     );
 

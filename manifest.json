@@ -2,10 +2,15 @@
   "name": "Anychrome",
   "version": "0.1",
   "description": "candidate-selection framework like anything.el",
+  "icons": {
+      "16" : "16.png",
+      "48" : "48.png",
+      "128": "128.png"
+  },
   "browser_action": {
-      "default_icon": "icon.png",
-      "popup": "popup.html",
-      "default_title" : "Anychrome"
+      "default_icon" : "19.png",
+      "popup"        : "popup.html",
+      "default_title": "Anychrome"
   },
   "permissions": [
     "tabs", "history"

@@ -19,8 +19,8 @@ var ac_source_tabs = {
             { populate: true },
             function (windows) {
                 windows.map(
-                    function(window) {
-                        chrome.tabs.getAllInWindow(window.id, callback); // anychrome のタブは除く
+                    function(_window) {
+                        chrome.tabs.getAllInWindow(_window.id, callback); //XXX 自身 のタブは除く
                     }
                 );
             }

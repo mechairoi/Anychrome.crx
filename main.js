@@ -111,7 +111,6 @@ function set_location_hash (hash) {
 }
 $( function() {
     location_hash = {};
-    console.log(location.hash);
     if (document.location.hash !== "" && document.location.hash !== "#")
         location_hash = JSON.parse(location.hash.substr(1));
     // if (location_hash._external_open) { // NOT WORKING
@@ -140,7 +139,6 @@ $( function() {
     $("#anychrome_query").bind("blur", function() { this.focus(); return false; } );
     $("#anychrome_query").bind("keydown",
         function(e) {
-            console.log(e);
             if( !e.altKey && !e.shiftKey && e.ctrlKey) {
                 if (e.keyCode == 78) { // C-n
                     select_next();
@@ -206,7 +204,6 @@ $( function() {
 			{"action": "getRegExpString", "query": q}
 		    ).next(
 			function (res) {
-			    console.log(res);
 			    return Deferred.next(
 				function () {
 				    reg = new RegExp(res.result, 'i');

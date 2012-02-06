@@ -1,3 +1,9 @@
+/*
+ * Anychrome.crx
+ * writtern By Takaya Tsujikawa <http://github.com/mechairoi>.
+ *
+ * Released under the MIT License
+ */
 // source spec
 // init : XXX not implemented
 // candidates : array or function returns something array

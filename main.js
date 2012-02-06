@@ -66,7 +66,6 @@ var ac_source_history = {
     delayed: 0.1,
     requires_pattern: 3,
     candidates: function(query, callback) {
-        console.log(query);
         chrome.history.search(
             { text: query, maxResults: 200 },
             callback

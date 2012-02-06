@@ -121,7 +121,38 @@ var ac_source_history = {
 //   }
 // );
 
+var location_hash = {};
+function set_location_hash (hash) {
+    location_hash = $.extend(location_hash, hash);
+    document.location.hash = JSON.stringify(location_hash);
+}
 $( function() {
+    location_hash = {};
+    console.log(location.hash);
+    if (document.location.hash !== "" && document.location.hash !== "#")
+        location_hash = JSON.parse(location.hash.substr(1));
+    // if (location_hash._external_open) { // NOT WORKING
+    //     delete location_hash['_external_open'];
+    //     window.open(
+    //         chrome.extension.getURL('main.html#').concat(JSON.stringify(location_hash)), "anychrome",
+    //         "width=" + 680 +
+    //         ", height=" + 1050 +
+    //         ", top=" + 0 +
+    //         ", left=" + 1000
+    //     );
+    //     return;
+    // }
+
+    $(window).bind(
+        'hashchange',
+        function() {
+            if(document.location.hash === "" || document.location.hash === "#") {
+                clean();
+                anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
+            }
+        }
+    );
+
     $("#anychrome_query").bind("blur", function() { this.focus(); return false; } );
     $("#anychrome_query").bind("keydown",
         function(e) {
@@ -241,6 +272,7 @@ function anychrome(params) {
     // XXX ul は 新しく作りなおしたほうがよさそう(古いやつが挿入してくるかも...) & ul を current param に入れとく
     current_params = params;
     var sources = params.sources;
+    set_location_hash( { sources: sources.map( function(source) { return source.name; } ) } );
     sources.forEach(
         function(source) {
             source.transformed_candidates = [];
@@ -392,13 +424,23 @@ function do_first_action() {
     var source = current_params.sources[$(cands[0].element).attr("data-source-index")];
 
     clean();
-    window.close();
     source.actions[0].fn(cands.map(function(cand) { return cand.entity; }));
 }
 
 function abort() {
     clean();
-    window.close();
+    if (typeof location_hash.window_id !== "undefined") {
+        chrome.windows.update(
+            location_hash.window_id,
+            { focused: true },
+            function () { }
+	);
+    }
+    // chrome.windows.getCurrent( // XXX NOT WORKING
+    // 	function (_window) {
+    // 	    chrome.windows.update(_window.id, { focused: false }, function () { } );
+    // 	}
+    // );
 }
 
 function clean() {
@@ -409,6 +451,7 @@ function clean() {
         }
     );
     $("#anychrome_candidates").empty();
+    $("#anychrome_query").attr("value", "");
 }
 
 function select_action() {

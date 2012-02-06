@@ -4,7 +4,33 @@ body {
 }
 </style>
 <script>
-  window.open(
-      chrome.extension.getURL('main.html#'), "anychrome", "width=680, height=1050, top=0, left=1000"
+  chrome.tabs.query(
+    {
+       url: chrome.extension.getURL('main.html')
+    }, function (tabs) {
+      if (tabs.length === 0) {
+        chrome.windows.getCurrent(
+          function (_window) {
+            window.open(
+                chrome.extension.getURL('main.html#{ "window_id":' + _window.id + '}'), "anychrome_main", "width=680, height=1050, top=0, left=1000, menubar=no, toolbar=no, scrollbars=no"
+            );
+          }
+        )
+      } else {
+        chrome.windows.update(tabs[0].windowId, { focused : true }, function () { } );
+        chrome.windows.getCurrent(
+          function (_window) {
+            chrome.tabs.update(
+              tabs[0].id,
+              {
+                active : true,
+                url: chrome.extension.getURL('main.html#{ "window_id":' + _window.id + '}')
+              },
+              function () {}
+            );
+          }
+        );
+      }
+    }
   );
 </script>

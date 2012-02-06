@@ -7,6 +7,7 @@ tell application "Google Chrome"
                                 tell _window
                                         tell _tab
                                                 execute javascript "
+document.location.hash = '#';
 chrome.windows.getCurrent(
     function(win) {
         chrome.windows.update(
@@ -31,7 +32,7 @@ chrome.windows.getCurrent(
         end repeat
         tell window 1
                 tell active tab
-                        execute javascript "window.open('chrome-extension://epmnohbjmpanknlignaginogcoiefcac/main.html#', 'anychrome', 'width=680, height=1050, top=0, left=1000');"
+                        execute javascript "window.open('chrome-extension://epmnohbjmpanknlignaginogcoiefcac/main.html#{\"_external_open\": true}', 'anychrome', 'width=680, height=1050, top=0, left=1000');"
                 end tell
         end tell
 end tell

@@ -55,7 +55,7 @@ var ac_source_tabs = {
 var ac_source_history = {
     name: "History",
     delayed: 0.1,
-    requires_pattern: 3,
+    requires_pattern: 3, // XXX not implemented
     candidates: function(query, callback) {
         chrome.history.search(
             { text: query, maxResults: 200 },

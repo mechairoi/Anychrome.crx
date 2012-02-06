@@ -197,22 +197,28 @@ $( function() {
 	    );
 
             reg = q === "" ? false : new RegExp(q, "i");
-	    (
-		(q.length >= migemo_threshold)
-		    ? Deferred.chrome.extension.sendRequest(
-			'pocnedlaincikkkcmlpcbipcflgjnjlj',
-			{"action": "getRegExpString", "query": q}
-		    ).next(
-			function (res) {
-			    return Deferred.next(
-				function () {
-				    reg = new RegExp(res.result, 'i');
+	    Deferred.chain(
+		(
+		    (q.length >= migemo_threshold)
+			? Deferred.connect(
+			    function(ok) {
+				try {
+				    chrome.extension.sendRequest(
+					'pocnedlaincikkkcmlpcbipcflgjnjlj',
+					{"action": "getRegExpString", "query": q},
+					ok
+				    );
+				} catch (x) {
+				    ok(); // fail but ok()
 				}
-			    );
-			}
-		    )
-		: Deferred.next( function () {} )
-	    ).next(
+			    },
+			    { target: chrome.extension, ok:0 }
+			) : []
+		),
+		function (res) {
+		    console.log(res);
+		    if (res) reg = new RegExp(res.result, 'i');
+		},
 		function () {
 		    current_params.sources.forEach(
 			function(source) {

@@ -55,9 +55,23 @@ var ac_source_history = {
     name: "History",
     delayed: 0.1,
     requires_pattern: 3, // XXX not implemented
+    // migemo: 3,
+    // regex: true,
     candidates: function(query, callback) {
+        // var has_non_letter = XRegExp("\\p{^L}");
         chrome.history.search(
-            { text: query.join(" "), maxResults: 200 },
+            {
+                // text: regs.map(function(reg) { return reg.source; } ).join(" "),
+                // text:query.map(
+                //     function(words) {
+                //      words = words.filter(function (word) { return !has_non_letter.test(word); });
+                //      return words.length === 0 ? "" : ("("+ words.join(" OR ") + ")");
+                //     }
+                // ).join(" "),
+                text:query.join(" "),
+                startTime: (new Date()).getTime() - 60 * 60 * 24 * 365,
+                endTime: (new Date()).getTime()
+            },
             callback
         );
     },
@@ -186,8 +200,6 @@ $( function() {
                );
                if (q.join(" ") === prev_q) return;
                prev_q = q.join(" ");
-               var regs = q.map( function(str) { return str.replace(/([^0-9A-Za-z_])/g, '\\$1'); } ); // quotemeta
-               var reg = regs.join("|");
 
                var migemo_threshold = 100;
                current_params.sources.forEach(
@@ -197,42 +209,58 @@ $( function() {
                    }
                );
 
+               var qs = q.filter(
+                   function(x){ return x.length < migemo_threshold; }
+               ).map(function(x) { return [x]; });
+
+               var regs = qs.map(
+                   function(words) { return words[0].replace(/([^0-9A-Za-z_])/g, '\\$1'); }
+               );
+               var reg;
                Deferred.chain(
-                   q.map(
-                       function(x){
-                           return Deferred.connect(
-                               function(ok) {
-                                   if (x.length < migemo_threshold)
-                                       ok( x );
-                                   else {
-                                       try {
-                                           chrome.extension.sendRequest(
-                                               'pocnedlaincikkkcmlpcbipcflgjnjlj',
-                                               {"action": "getRegExpString", "query": x},
-                                               function(res){ ok(res.result); }
-                                           );
-                                       } catch (exception) {
-                                           ok( x ); // fail but fallback
-                                       }
-                                   }
-                               },
-                               { target: chrome.extension, ok:0 }
+                   Deferred.connect(
+                       function(succ) {
+                           var queries = q.filter(
+                               function(x){ return x.length >= migemo_threshold; }
                            );
-                       }
+                           if (queries.length == 0)
+                               succ([]);
+                           else {
+                               try {
+                                   chrome.extension.sendRequest(
+                                       'pocnedlaincikkkcmlpcbipcflgjnjlj',
+                                       {
+                                           "action": "getCompletion",
+                                           "query": queries.join(" ")
+                                       },
+                                       function(res){ succ( res.result ); }
+                                   );
+                               } catch (exception) {
+                                   succ( q.map(function(x) { return [ x.replace(/([^0-9A-Za-z_])/g, '\\$1') ]; }) );
+                               }
+                           }
+                       },
+                       { target: chrome.extension, ok:0 }
                    ),
                    function (res) {
-                       regs =res.map( function(r) { return new RegExp(r, "i"); } );
-                       reg = res.map( function(r) { return r; } ).join("|");
-                       console.log(reg);
-                       console.log(regs);
+                       [].push.apply(qs,res);
+                       regs = qs.map(
+                           function(words) {
+                               return words.join("|");
+                           }
+                       );
+                       reg =  regs.join("|"); // for highlight
                        reg = reg === "" ? false : new RegExp(reg, "i");
+                       regs = regs.map( function(reg) { return new RegExp(reg, "i"); } );
                    },
                    function () {
                        current_params.sources.forEach(
                            function(source) {
                                if (typeof source.delayed !== "undefined") {
                                    var transformed = source.transformed_candidates = [];
-                                   source.deferred.candidates(source.regex ? reg : q).next(
+                                   source.deferred.candidates(
+                                       source.regex ? regs : source.migemo ? qs : q
+                                   ).next(
                                        deferred_transform_candidates(source)
                                    ).next(
                                        function(){ redisplay(reg, regs); }

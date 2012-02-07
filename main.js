@@ -15,21 +15,20 @@
 var ac_source_tabs = {
     name: "Tabs",
     candidates: function (callback) {
-	chrome.tabs.query({}, callback);
+        chrome.tabs.query({}, callback);
     },
     candidates_transformer: function (tabs) {
         return tabs.map(
             function(tab) {
                 return {
                     id : tab.id.toString(),
-                    element :
-                        $("<li></li>").addClass("nowrap").append(
-                                $('<img class=\"favicon\" />').attr({"src": tab.favIconUrl, width: "16px", height: "16px"}),
-                                $('<span></span>').append(tab.title),
-                                $('<span class="url"></span>').append(
-                                    tab.url.match("^http://") ? tab.url.substr(7) : tab.url
-                                )
-                        )[0],
+                    element : $("<li></li>").addClass("nowrap").append(
+                        $('<img class=\"favicon\" />').attr({"src": tab.favIconUrl, width: "16px", height: "16px"}),
+                        $('<span></span>').append(tab.title),
+                        $('<span class="url"></span>').append(
+                            tab.url.match("^http://") ? tab.url.substr(7) : tab.url
+                        )
+                    )[0],
                     entity: tab
                 };
             }
@@ -58,7 +57,7 @@ var ac_source_history = {
     requires_pattern: 3, // XXX not implemented
     candidates: function(query, callback) {
         chrome.history.search(
-            { text: query, maxResults: 200 },
+            { text: query.join(" "), maxResults: 200 },
             callback
         );
     },
@@ -68,13 +67,12 @@ var ac_source_history = {
                 return {
                     id: history_item.id,
                     name: history_item.url + history_item.title,
-                    element:
-                        $("<li></li>").addClass("nowrap").append(
-                                $('<span></span>').append(history_item.title),
-                                $('<span class="url"></span>').append(
-                                    history_item.url.match("^http://") ? history_item.url.substr(7) : history_item.url
-                                )
-                        )[0],
+                    element: $("<li></li>").addClass("nowrap").append(
+                        $('<span></span>').append(history_item.title),
+                        $('<span class="url"></span>').append(
+                            history_item.url.match("^http://") ? history_item.url.substr(7) : history_item.url
+                        )
+                    )[0],
                     entity: history_item
                 };
             }
@@ -110,139 +108,149 @@ function set_location_hash (hash) {
     document.location.hash = JSON.stringify(location_hash);
 }
 $( function() {
-    location_hash = {};
-    if (document.location.hash !== "" && document.location.hash !== "#")
-        location_hash = JSON.parse(location.hash.substr(1));
-    // if (location_hash._external_open) { // NOT WORKING
-    //     delete location_hash['_external_open'];
-    //     window.open(
-    //         chrome.extension.getURL('main.html#').concat(JSON.stringify(location_hash)), "anychrome",
-    //         "width=" + 680 +
-    //         ", height=" + 1050 +
-    //         ", top=" + 0 +
-    //         ", left=" + 1000
-    //     );
-    //     return;
-    // }
+       location_hash = {};
+       if (document.location.hash !== "" && document.location.hash !== "#")
+           location_hash = JSON.parse(location.hash.substr(1));
+       // if (location_hash._external_open) { // NOT WORKING
+       //     delete location_hash['_external_open'];
+       //     window.open(
+       //         chrome.extension.getURL('main.html#').concat(JSON.stringify(location_hash)), "anychrome",
+       //         "width=" + 680 +
+       //         ", height=" + 1050 +
+       //         ", top=" + 0 +
+       //         ", left=" + 1000
+       //     );
+       //     return;
+       // }
 
-    $(window).bind(
-        'hashchange',
-        function() {
-            if(document.location.hash === "" || document.location.hash === "#") {
-                clean();
-                anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
-		$("#anychrome_query").focus();
-            }
-        }
-    );
+       $(window).bind(
+           'hashchange',
+           function() {
+               if(document.location.hash === "" || document.location.hash === "#") {
+                   clean();
+                   anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
+                   $("#anychrome_query").focus();
+               }
+           }
+       );
 
-    $("#anychrome_query").bind("blur", function() { this.focus(); return false; } );
-    $("#anychrome_query").bind("keydown",
-        function(e) {
-            if( !e.altKey && !e.shiftKey && e.ctrlKey) {
-                if (e.keyCode == 78) { // C-n
-                    select_next();
-                    return false;
-                } else if (e.keyCode == 80) { // C-p
-                    select_prev();
-                    return false;
-                } else if (e.keyCode == 85) { // C-u
-                    // anychrome_force_update();
-                    return false;
-                } else if (e.keyCode == 76) { // C-l
-                    // anychrome_force_update();
-                    return false;
-                } else if (e.keyCode == 71) { // C-g
-                    abort();
-                    return false;
-                } else if (e.keyCode == 73) { // C-i
-                    select_action();
-                    return false;
-                } else if (e.keyCode == 77) { // C-m
-                    do_first_action();
-                    return false;
-                } else if (e.keyCode == 88) { // C-x
-                    toggle_mark();
-                    return false;
-                }
-            } else if ( !e.altKey && !e.shiftKey && !e.ctrlKey) {
-                if(e.keyCode == 9) { // tab
-                    select_action();
-                    return false;
-                } else if(e.keyCode == 13) { // Enter
-                    do_first_action();
-                    return false;
-                }
-            }
-            return true;
-        }
-    );
+       $("#anychrome_query").bind("blur", function() { this.focus(); return false; } );
+       $("#anychrome_query").bind(
+           "keydown",
+           function(e) {
+               if( !e.altKey && !e.shiftKey && e.ctrlKey) {
+                   if (e.keyCode == 78) { // C-n
+                       select_next();
+                       return false;
+                   } else if (e.keyCode == 80) { // C-p
+                       select_prev();
+                       return false;
+                   } else if (e.keyCode == 85) { // C-u
+                       // anychrome_force_update();
+                       return false;
+                   } else if (e.keyCode == 76) { // C-l
+                       // anychrome_force_update();
+                       return false;
+                   } else if (e.keyCode == 71) { // C-g
+                       abort();
+                       return false;
+                   } else if (e.keyCode == 73) { // C-i
+                       select_action();
+                       return false;
+                   } else if (e.keyCode == 77) { // C-m
+                       do_first_action();
+                       return false;
+                   } else if (e.keyCode == 88) { // C-x
+                       toggle_mark();
+                       return false;
+                   }
+               } else if ( !e.altKey && !e.shiftKey && !e.ctrlKey) {
+                   if(e.keyCode == 9) { // tab
+                       select_action();
+                       return false;
+                   } else if(e.keyCode == 13) { // Enter
+                       do_first_action();
+                       return false;
+                   }
+               }
+               return true;
+           }
+       );
 
-    var prev_q;
-    $("#anychrome_query").bind("textchange",
-        function (event) {
-            var q = $("#anychrome_query").attr("value");
-            if (q === prev_q) return;
-            prev_q = q;
-            var reg = q.replace(/([^0-9A-Za-z_])/g, '\\$1'); // quotemeta
+       var prev_q;
+       $("#anychrome_query").bind(
+           "textchange",
+           function (event) {
+               var q = $("#anychrome_query").attr("value").split(new RegExp(" +")).filter(
+                   function(x) { return x !== ""; }
+               );
+               if (q.join(" ") === prev_q) return;
+               prev_q = q.join(" ");
+               var regs = q.map( function(str) { return str.replace(/([^0-9A-Za-z_])/g, '\\$1'); } ); // quotemeta
+               var reg = regs.join("|");
 
+               var migemo_threshold = 100;
+               current_params.sources.forEach(
+                   function(source) {
+                       if (source.migemo && source.migemo < migemo_threshold)
+                           migemo_threshold = source.migemo;
+                   }
+               );
 
-	    var migemo_reg;
-	    var migemo_threshold = 100;
-            current_params.sources.forEach(
-                function(source) {
-		    if (source.migemo && source.migemo < migemo_threshold)
-			migemo_threshold = source.migemo;
-		}
-	    );
+               Deferred.chain(
+                   q.map(
+                       function(x){
+                           return Deferred.connect(
+                               function(ok) {
+                                   if (x.length < migemo_threshold)
+                                       ok( x );
+                                   else {
+                                       try {
+                                           chrome.extension.sendRequest(
+                                               'pocnedlaincikkkcmlpcbipcflgjnjlj',
+                                               {"action": "getRegExpString", "query": x},
+                                               function(res){ ok(res.result); }
+                                           );
+                                       } catch (exception) {
+                                           ok( x ); // fail but fallback
+                                       }
+                                   }
+                               },
+                               { target: chrome.extension, ok:0 }
+                           );
+                       }
+                   ),
+                   function (res) {
+                       regs =res.map( function(r) { return new RegExp(r, "i"); } );
+                       reg = res.map( function(r) { return r; } ).join("|");
+                       console.log(reg);
+                       console.log(regs);
+                       reg = reg === "" ? false : new RegExp(reg, "i");
+                   },
+                   function () {
+                       current_params.sources.forEach(
+                           function(source) {
+                               if (typeof source.delayed !== "undefined") {
+                                   var transformed = source.transformed_candidates = [];
+                                   source.deferred.candidates(source.regex ? reg : q).next(
+                                       deferred_transform_candidates(source)
+                                   ).next(
+                                       function(){ redisplay(reg, regs); }
+                                   );
+                               }
+                           }
+                       );
+                       redisplay(reg, regs);
+                   }
+               );
+           }
+       );
 
-            reg = q === "" ? false : new RegExp(q, "i");
-	    Deferred.chain(
-		(
-		    (q.length >= migemo_threshold)
-			? Deferred.connect(
-			    function(ok) {
-				try {
-				    chrome.extension.sendRequest(
-					'pocnedlaincikkkcmlpcbipcflgjnjlj',
-					{"action": "getRegExpString", "query": q},
-					ok
-				    );
-				} catch (x) {
-				    ok(); // fail but ok()
-				}
-			    },
-			    { target: chrome.extension, ok:0 }
-			) : []
-		),
-		function (res) {
-		    console.log(res);
-		    if (res) reg = new RegExp(res.result, 'i');
-		},
-		function () {
-		    current_params.sources.forEach(
-			function(source) {
-			    if (typeof source.delayed !== "undefined") {
-				var transformed = source.transformed_candidates = [];
-				source.deferred.candidates(source.regex ? reg : q).next(
-				    deferred_transform_candidates(source)
-				).next(
-				    function(){ redisplay(reg); }
-				);
-			    }
-			}
-		    );
-		    redisplay(reg);
-		}
-	    );
-        }
-    );
+       anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
+       $("#anychrome_query").focus();
+   } );
 
-    anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
-    $("#anychrome_query").focus();
-} );
-
-function highlight (params, reg, cand) {
+function highlight (source, reg, regs, cand) {
     $("span.anychrome_highlighted", cand.element).each(
         function() {
             with (this.parentNode) {
@@ -256,13 +264,17 @@ function highlight (params, reg, cand) {
     var walker = document.createTreeWalker(
         cand.element, NodeFilter.SHOW_TEXT, null, false
     );
-    var flag = false;
+    var n = regs.length;
+    var flag = [];
     var has_next = walker.nextNode();
     while (has_next) {
         var node = walker.currentNode;
         has_next = walker.nextNode();
         var m = node.nodeValue.match(reg);
         if (!m) continue;
+        for( var i = 0; i < n; ++i )
+            if (node.nodeValue.match(regs[i]))
+                flag[i] = true;
         node.splitText(m.index);
         node = node.nextSibling;
         node.splitText(m[0].length);
@@ -270,9 +282,11 @@ function highlight (params, reg, cand) {
         node.parentNode.replaceChild(surround, node);
         surround.appendChild(node);
         surround.className = "anychrome_highlighted";
-        flag = true;
     }
-    return flag ? true : false;
+    if (source.delayed) return true;
+    for( var i = 0; i < n; ++i )
+        if(!flag[i]) return false;
+    return true;
 }
 
 var current_params;
@@ -283,41 +297,41 @@ function anychrome(params) {
     set_location_hash( { sources: sources.map( function(source) { return source.name; } ) } );
     sources.forEach(
         function(source) {
-	    source.deferred = {};
-	    source.deferred.candidates = Deferred.connect(
-		(typeof (source.candidates) !== "function")
-		    ? function(callback) { callback(source.candidates); }
-		    : source.candidates,
-		{ target: source, ok: source.delayed ? 1 : 0 }
-	    );
+            source.deferred = {};
+            source.deferred.candidates = Deferred.connect(
+                (typeof (source.candidates) !== "function")
+                    ? function(callback) { callback(source.candidates); }
+                : source.candidates,
+                { target: source, ok: source.delayed ? 1 : 0 }
+            );
             source.transformed_candidates = [];
             source.marked_candidates = {}; // XXX どっかで開放する.
             source.deferred.candidates("").next(
-		deferred_transform_candidates(source)
+                deferred_transform_candidates(source)
             ).next(
-		function() { redisplay(""); }
-	    );
+                function() { redisplay(""); }
+            );
         }
     );
 }
 
 function deferred_transform_candidates (source) {
     return function (candidates) {
-	return Deferred.next(
-	    function () {
-		var list = source.candidates_transformer(candidates);
-		list.forEach(
-		    function(cand) {
-			if(!cand.element) cand.element = $("<li></li>").text(cand.name);
-		    }
-		);
-		[].push.apply(source.transformed_candidates, list);
-	    }
-	);
+        return Deferred.next(
+            function () {
+                var list = source.candidates_transformer(candidates);
+                list.forEach(
+                    function(cand) {
+                        if(!cand.element) cand.element = $("<li></li>").text(cand.name);
+                    }
+                );
+                [].push.apply(source.transformed_candidates, list);
+            }
+        );
     };
 }
 
-function redisplay(reg) {
+function redisplay(reg, regs) {
     var params = current_params;
     var c = 0;
     var n = params.sources.length;
@@ -336,7 +350,7 @@ function redisplay(reg) {
         for (var j = 0; j < m; ++j) {
             var cand = cands[j];
             ++c;
-            if (highlight(params, reg, cand)) {
+            if (highlight(source, reg, regs, cand)) {
                 k++;
                 $("#anychrome_candidates").append( cand.element );
                 $(cand.element).attr("data-source-index", i);
@@ -439,12 +453,12 @@ function abort() {
             location_hash.window_id,
             { focused: true },
             function () { }
-	);
+        );
     }
     // chrome.windows.getCurrent( // XXX NOT WORKING
-    // 	function (_window) {
-    // 	    chrome.windows.update(_window.id, { focused: false }, function () { } );
-    // 	}
+    //  function (_window) {
+    //      chrome.windows.update(_window.id, { focused: false }, function () { } );
+    //  }
     // );
 }
 

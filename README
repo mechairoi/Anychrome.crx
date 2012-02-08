@@ -1,0 +1,18 @@
+* ChromeMigemo
+https://chrome.google.com/webstore/detail/pocnedlaincikkkcmlpcbipcflgjnjlj
+
+* TODO
+- source とのやりとりは 全部 callbackでやる (他の拡張との通信したい)
+- スクロールまともに
+- ページ移動/section移動
+- Bookmark の source
+- chmer-js
+- follow mode
+- ページの検索のから 勝手にソース作る
+- 設定ページに anychrome.scpt と anychrome.html 出す
+- https://chrome.google.com/webstore/ がアクティブだと window.open しないので他のタブを選ぶ(anychrome.scpt)
+- TAB action
+-- secret window で開く
+-- reload
+-- 新しい window に分ける
+-- pin

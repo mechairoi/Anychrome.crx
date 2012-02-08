@@ -209,6 +209,12 @@ $( function() {
                    } else if(e.keyCode == 13) { // Enter
                        do_first_action();
                        return false;
+                   } else if(e.keyCode == 38) { // Up
+                       select_prev();
+                       return false;
+                   } else if(e.keyCode == 40) { // Down
+                       select_next();
+                       return false;
                    }
                }
                return true;

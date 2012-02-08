@@ -7,7 +7,6 @@ tell application "Google Chrome"
                                 tell _window
                                         tell _tab
                                                 execute javascript "
-document.location.hash = '#';
 chrome.windows.getCurrent(
     function(win) {
         chrome.windows.update(
@@ -32,7 +31,15 @@ chrome.windows.getCurrent(
         end repeat
         tell window 1
                 tell active tab
-                        execute javascript "window.open('chrome-extension://epmnohbjmpanknlignaginogcoiefcac/main.html#{\"_external_open\": true}', 'anychrome', 'width=680, height=1050, top=0, left=1000');"
+                        execute javascript "
+(function() {
+    var width = Math.min(window.innerWidth, 600);
+    var window_bar_height = 50; // XXX OSX
+    window.open(
+        'chrome-extension://epmnohbjmpanknlignaginogcoiefcac/main.html#{\"_external_open\": true}',
+        'anychrome',
+        'width=' + width + ', height=' + (window.innerHeight - window_bar_height) + ', top=' + (window.screenTop + 72) + ', left=' + (window.screenLeft + window.innerWidth - width));
+})();"
                 end tell
         end tell
 end tell

@@ -116,35 +116,59 @@ var ac_source_history = {
     ]
 };
 
+function close_popup_html () {
+  chrome.tabs.query(
+    {
+       url: chrome.extension.getURL('popup.html')
+    }, function (tabs) {
+        tabs.forEach(
+            function(tab) {
+                chrome.tabs.remove(tab.id, function () {});
+            }
+        );
+    }
+  );
+}
+
 var location_hash = {};
 function set_location_hash (hash) {
     location_hash = $.extend(location_hash, hash);
     document.location.hash = JSON.stringify(location_hash);
 }
 $( function() {
+       close_popup_html();
        location_hash = {};
+       console.log(document.location.hash);
        if (document.location.hash !== "" && document.location.hash !== "#")
            location_hash = JSON.parse(location.hash.substr(1));
-       // if (location_hash._external_open) { // NOT WORKING
-       //     delete location_hash['_external_open'];
-       //     window.open(
-       //         chrome.extension.getURL('main.html#').concat(JSON.stringify(location_hash)), "anychrome",
-       //         "width=" + 680 +
-       //         ", height=" + 1050 +
-       //         ", top=" + 0 +
-       //         ", left=" + 1000
-       //     );
-       //     return;
-       // }
+       console.log(document.location.hash);
+       set_location_hash( { initialized: true } );
 
        $(window).bind(
            'hashchange',
-           function() {
-               if(document.location.hash === "" || document.location.hash === "#") {
+           function () {
+               if (document.location.hash !== "" && document.location.hash !== "#")
+                   location_hash = JSON.parse(location.hash.substr(1));
+               else
+                   location_hash = {};
+               console.log(location_hash);
+               if(!location_hash.initialized) {
+                   close_popup_html();
                    clean();
                    anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
                    $("#anychrome_query").focus();
+                   set_location_hash( { initialized: true } );
                }
+           }
+       );
+       $(window).bind(
+           'focus',
+           function () {
+               close_popup_html();
+               clean();
+               anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
+               $("#anychrome_query").focus();
+               set_location_hash( { initialized: true } );
            }
        );
 

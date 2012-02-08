@@ -1,0 +1,147 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+  <head>
+    <title>anychrome</title>
+    <style type="text/css">
+    <!--
+      pre {
+          background-color: #fdf6e3;
+          padding: 10px;
+          white-space: pre-wrap;
+          border-radius: 3px;
+          -webkit-border-radius: 3px;
+          -moz-border-radius: 3px;
+          -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,.20);
+          -moz-box-shadow: inset 0 0 5px rgba(0,0,0,.20);
+          box-shadow: inset 0 0 5px rgba(0,0,0,.20);
+          text-align: left;
+      }
+
+      body {
+        color: #839496;
+        background: #FAFAFA;
+      }
+      .function-name {
+        color: #8cd0d3;
+      }
+      .string {
+        color: #cc9393;
+      }
+      a {
+        color: inherit;
+        background-color: inherit;
+        font: inherit;
+        text-decoration: inherit;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .apples-commands {
+        color: #B58900;
+        font-weight: bold;
+        font-style: italic;
+      }
+      .apples-end-completion {
+        background-color: #cd1076;
+      }
+      .apples-error-highlight {
+        background-color: #cd1076;
+      }
+      .apples-operators {
+        color: #B58900;
+        font-weight: bold;
+      }
+      .apples-reserved-words {
+        color: #B58900;
+        font-weight: bold;
+        font-style: italic;
+      }
+      .apples-statements {
+        color: #B58900;
+        font-weight: bold;
+      }
+      .variable-name {
+        color: #B58900;
+      }
+    -->
+    </style>
+    <script type="text/javascript" src="jquery-1.7.1.min.js"></script>
+    <script type="text/javascript">
+      $(function() {
+         $('.extension-main-html').text(chrome.extension.getURL('main.html'));
+         $('.extension-popup-html').text(chrome.extension.getURL('popup.html'));
+      });
+    </script>
+  </head>
+  <body>
+    <center>
+    <div style="width:600px">
+      <header>Generic Trigger HTML</header>
+    <pre>
+&lt;<span class="function-name">html</span>&gt;
+  &lt;<span class="function-name">script</span>&gt;
+window.open(
+    '<span class="extension-popup-html"></span>#{\<span class="string">"_external_open\"</span><span class="hiwin">: true}'
+);
+  &lt;/</span><span class="function-name"><span class="hiwin">script</span></span><span class="hiwin">&gt;
+&lt;/</span><span class="function-name"><span class="hiwin">html</span></span><span class="hiwin">&gt;
+</span></pre>
+
+
+      <header>Trigger Apple Script</header>
+    <pre>
+<span class="apples-statements"><span class="hiwin">tell</span></span><span class="hiwin"> </span><span class="apples-statements"><span class="hiwin">application</span></span><span class="hiwin"> </span><span class="string"><span class="hiwin">"Google Chrome"</span></span><span class="hiwin">
+        </span><span class="apples-commands"><span class="hiwin">activate</span></span><span class="hiwin">
+        </span><span class="apples-statements"><span class="hiwin">repeat with</span></span><span class="hiwin"> _window </span><span class="apples-reserved-words"><span class="hiwin">in</span></span><span class="hiwin"> windows
+                </span><span class="apples-statements"><span class="hiwin">repeat with</span></span><span class="hiwin"> _tab </span><span class="apples-reserved-words"><span class="hiwin">in</span></span><span class="hiwin"> tabs </span><span class="apples-reserved-words"><span class="hiwin">of</span></span><span class="hiwin"> _window
+                        </span><span class="apples-commands"><span class="hiwin">set</span></span><span class="hiwin"> </span><span class="variable-name"><span class="hiwin">_i</span></span><span class="hiwin"> </span><span class="apples-reserved-words"><span class="hiwin">to</span></span><span class="hiwin"> 1
+                        </span><span class="apples-statements"><span class="hiwin">if</span></span><span class="hiwin"> URL </span><span class="apples-reserved-words"><span class="hiwin">of</span></span><span class="hiwin"> _tab </span><span class="apples-operators"><span class="hiwin">contains</span></span><span class="hiwin"> </span><span class="string"><span class="hiwin">"<span class="extension-main-html"></span>"</span></span><span class="hiwin"> </span><span class="apples-statements"><span class="hiwin">then</span></span><span class="hiwin">
+                                </span><span class="apples-statements"><span class="hiwin">tell</span></span><span class="hiwin"> _window
+                                        </span><span class="apples-statements"><span class="hiwin">tell</span></span><span class="hiwin"> _tab
+                                                execute javascript </span><span class="string"><span class="hiwin">"
+chrome.windows.getCurrent(
+    function(win) {
+        chrome.windows.update(
+                win.id,
+                        { 'focused':true },
+                        function() {
+                            chrome.tabs.getCurrent(
+                                    function(tab) {
+                        chrome.tabs.update(tab.id,{
+                            'selected':true
+                        });
+                                    }
+                            );
+                    }
+            )
+    });"</span></span><span class="hiwin">
+                                        </span><span class="apples-statements"><span class="hiwin">end</span></span><span class="hiwin"> </span><span class="apples-statements"><span class="hiwin">tell</span></span><span class="hiwin">
+                                </span><span class="apples-statements"><span class="hiwin">end</span></span><span class="hiwin"> </span><span class="apples-statements"><span class="hiwin">tell</span></span><span class="hiwin">
+                                </span><span class="apples-statements"><span class="hiwin">return</span></span><span class="hiwin">
+                        </span><span class="apples-statements"><span class="hiwin">end</span></span><span class="hiwin"> </span><span class="apples-statements"><span class="hiwin">if</span></span><span class="hiwin">
+                </span><span class="apples-statements"><span class="hiwin">end</span></span><span class="hiwin"> </span><span class="apples-statements"><span class="hiwin">repeat</span></span><span class="hiwin">
+        </span><span class="apples-statements"><span class="hiwin">end</span></span><span class="hiwin"> </span><span class="apples-statements"><span class="hiwin">repeat</span></span><span class="hiwin">
+        </span><span class="apples-statements"><span class="hiwin">tell</span></span><span class="hiwin"> window 1
+                </span><span class="apples-statements"><span class="hiwin">tell</span></span><span class="hiwin"> active tab
+                        execute javascript </span><span class="string"><span class="hiwin">"
+(function() {
+    var width = Math.min(window.innerWidth, 600);
+    var window_bar_height = 50; // XXX OSX
+    window.open(
+        '<span class="extension-main-html"></span>#{\"_external_open\": true}',
+        'anychrome',
+        'width=' + width +
+        ', height=' + (window.innerHeight - window_bar_height) +
+        ', top=' + (window.screenTop + 72) +
+        ', left=' + (window.screenLeft + window.innerWidth - width));
+})();"</span></span>
+                <span class="apples-statements"><span class="hiwin">end</span></span><span class="hiwin"> </span><span class="apples-statements">tell</span><span class="hiwin">
+        </span><span class="apples-statements"><span class="hiwin">end</span></span><span class="hiwin"> </span><span class="apples-statements">tell</span>
+<span class="apples-statements">end</span> <span class="apples-statements">tell</span></span>
+
+</span></pre>
+  </div>
+  </center>
+  </body>
+</html>
+

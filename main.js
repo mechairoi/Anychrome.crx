@@ -69,7 +69,7 @@ var ac_source_history = {
                 //     }
                 // ).join(" "),
                 text:query.join(" "),
-                startTime: (new Date()).getTime() - 60 * 60 * 24 * 365,
+                startTime: (new Date()).getTime() - 60 * 60 * 24 * 365 * 1000,
                 endTime: (new Date()).getTime()
             },
             callback

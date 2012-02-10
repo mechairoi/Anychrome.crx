@@ -22,10 +22,10 @@ var ac_source_tabs = {
             function(tab) {
                 return {
                     id : tab.id.toString(),
-                    element : $("<li></li>").addClass("nowrap").append(
-                        $('<img class=\"favicon\" />').attr({"src": tab.favIconUrl, width: "16px", height: "16px"}),
-                        $('<span></span>').text(tab.title),
-                        $('<span class="url"></span>').text(
+                    element : $("<li>").addClass("nowrap").append(
+                        $('<img>').addClass('favicon').attr({"src": tab.favIconUrl, width: "16px", height: "16px"}),
+                        $('<span>').text(tab.title),
+                        $('<span>').addClass('url').text(
                             tab.url.match("^http://") ? tab.url.substr(7) : tab.url
                         )
                     )[0],
@@ -81,9 +81,9 @@ var ac_source_history = {
                 return {
                     id: history_item.id,
                     name: history_item.url + history_item.title,
-                    element: $("<li></li>").addClass("nowrap").append(
-                        $('<span></span>').text(history_item.title),
-                        $('<span class="url"></span>').text(
+                    element: $("<li>").addClass("nowrap").append(
+                        $('<span>').text(history_item.title),
+                        $('<span>').addClass('url').text(
                             history_item.url.match("^http://") ? history_item.url.substr(7) : history_item.url
                         )
                     )[0],
@@ -448,7 +448,7 @@ function deferred_transform_candidates (source) {
                 var list = source.candidates_transformer(candidates);
                 list.forEach(
                     function(cand) {
-                        if(!cand.element) cand.element = $("<li></li>").text(cand.name);
+                        if(!cand.element) cand.element = $("<li>").text(cand.name);
                     }
                 );
                 [].push.apply(source.transformed_candidates, list);
@@ -468,7 +468,7 @@ function redisplay(reg, regs) {
         var source = params.sources[i];
         ++c;
         $("#anychrome_candidates").append(
-            $("<li></li>").text(source.name).addClass("anychrome_section")
+            $("<li>").text(source.name).addClass("anychrome_section")
         );
         var cands  = source.transformed_candidates;
         var m = cands.length;

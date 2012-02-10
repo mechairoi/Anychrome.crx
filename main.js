@@ -24,8 +24,8 @@ var ac_source_tabs = {
                     id : tab.id.toString(),
                     element : $("<li></li>").addClass("nowrap").append(
                         $('<img class=\"favicon\" />').attr({"src": tab.favIconUrl, width: "16px", height: "16px"}),
-                        $('<span></span>').append(tab.title),
-                        $('<span class="url"></span>').append(
+                        $('<span></span>').text(tab.title),
+                        $('<span class="url"></span>').text(
                             tab.url.match("^http://") ? tab.url.substr(7) : tab.url
                         )
                     )[0],
@@ -82,8 +82,8 @@ var ac_source_history = {
                     id: history_item.id,
                     name: history_item.url + history_item.title,
                     element: $("<li></li>").addClass("nowrap").append(
-                        $('<span></span>').append(history_item.title),
-                        $('<span class="url"></span>').append(
+                        $('<span></span>').text(history_item.title),
+                        $('<span class="url"></span>').text(
                             history_item.url.match("^http://") ? history_item.url.substr(7) : history_item.url
                         )
                     )[0],

@@ -10,19 +10,21 @@ tell application "Google Chrome"
 chrome.windows.getCurrent(
     function(win) {
         chrome.windows.update(
-                win.id,
-                        { 'focused':true },
-                        function() {
-                            chrome.tabs.getCurrent(
-                                    function(tab) {
+            win.id,
+            { 'focused':true },
+            function() {
+                chrome.tabs.getCurrent(
+                    function(tab) {
                         chrome.tabs.update(tab.id,{
-                            'selected':true
+                            selected: true,
+                            url: 'chrome-extension://epmnohbjmpanknlignaginogcoiefcac/main.html#{\"_open_from\": \"applescript\", \"sources\": [\"tab\", \"history\"]}'
                         });
-                                    }
-                            );
                     }
-            )
-    });"
+                );
+            }
+        )
+    }
+);"
                                         end tell
                                 end tell
                                 return
@@ -36,7 +38,7 @@ chrome.windows.getCurrent(
     var width = Math.min(window.innerWidth, 600);
     var window_bar_height = 50; // XXX OSX
     window.open(
-        'chrome-extension://epmnohbjmpanknlignaginogcoiefcac/main.html#{\"_external_open\": true}',
+        'chrome-extension://epmnohbjmpanknlignaginogcoiefcac/main.html#{\"_open_from\": \"applescript\", \"sources\": [\"tab\", \"history\"]}',
         'anychrome',
         'width=' + width + ', height=' + (window.innerHeight - window_bar_height) + ', top=' + (window.screenTop + 72) + ', left=' + (window.screenLeft + window.innerWidth - width));
 })();"

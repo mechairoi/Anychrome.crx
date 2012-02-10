@@ -121,29 +121,97 @@ function close_popup_html () {
     {
        url: chrome.extension.getURL('popup.html')
     }, function (tabs) {
-        tabs.forEach(
-            function(tab) {
-                chrome.tabs.remove(tab.id, function () {});
+        if (tabs.length == 0) return;
+        var d = Deferred.parallel(
+            tabs.map( function(tab) { return Deferred.chrome.tabs.remove(tab.id); } )
+        ).next(
+            function() {
+                // if (window_id) fail(window_id);
+                Deferred.chain(
+                    window_ids.map(
+                        function(window_id){
+                            return function () {
+                                var d2 = Deferred.call(
+                                    chrome.windows.get(
+                                        window_id,
+                                        function(x) {
+                                            if (typeof x === "undefined") {
+                                                d2.call();
+                                            } else {
+                                                d2.fail(x);
+                                            }
+                                        }
+                                    )
+                                );
+                            };
+                        }
+                    )
+                );
+            }
+        ).error(
+            function(window_id) {
+                chrome.windows.update(
+                    window_id,
+                    { focused:true },
+                    function() {
+                        chrome.windows.getCurrent(
+                            function(window_id) {
+                                chrome.windows.update(
+                                    window_id,
+                                    { focused:true }
+                                );
+                            }
+                        );
+                    }
+                );
             }
         );
     }
   );
 }
 
-var location_hash = {};
-function set_location_hash (hash) {
-    location_hash = $.extend(location_hash, hash);
-    document.location.hash = JSON.stringify(location_hash);
-}
+// focus があたったのが古い順?
+var last_window_ids = [];
+var last_focused_window;
+$(
+    function() {
+        chrome.windows.getLastFocused(
+            function(_window) {
+                last_focused_window = _window;
+                chrome.windows.getAll(
+                    {},
+                    function(_windows) {
+                        last_window_ids = _windows
+                            .map   (function(w)  { return w.id; })
+                            .filter(function(x) { return x != last_focused_window.id; });
+                        chrome.windows.onFocusChanged.addListener(
+                            function(id) {
+                                if (id > 0 && id != last_focused_window.id) {
+                                    console.log(id);
+                                    last_window_ids = last_window_ids.filter( function(x) { return x != id; } );
+                                    last_window_ids.unshift(id);
+                                }
+                            }
+                        );
+                    }
+                );
+            }
+        );
+    }
+);
+
 $( function() {
-       close_popup_html();
+       var location_hash = {};
+
        location_hash = {};
-       console.log(document.location.hash);
        if (document.location.hash !== "" && document.location.hash !== "#")
            location_hash = JSON.parse(location.hash.substr(1));
-       console.log(document.location.hash);
-       set_location_hash( { initialized: true } );
+       document.location.hash = "";
+       if (location_hash._open_from === "html")
+           close_popup_html();
 
+
+       // $(window).bind("blur", function() { clean(); } );
        $(window).bind(
            'hashchange',
            function () {
@@ -151,24 +219,18 @@ $( function() {
                    location_hash = JSON.parse(location.hash.substr(1));
                else
                    location_hash = {};
-               console.log(location_hash);
-               if(!location_hash.initialized) {
+               document.location.hash = "";
+               if (location_hash._open_from === "html")
                    close_popup_html();
+               if(location_hash.sources) {
                    clean();
-                   anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
+                   if (typeof location_hash.window_id !== "undefined")
+                       last_window_ids.unshift(location_hash.window_id);
+                   anychrome(
+                       { sources: [ ac_source_tabs, ac_source_history ] }
+                   );
                    $("#anychrome_query").focus();
-                   set_location_hash( { initialized: true } );
                }
-           }
-       );
-       $(window).bind(
-           'focus',
-           function () {
-               close_popup_html();
-               clean();
-               anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
-               $("#anychrome_query").focus();
-               set_location_hash( { initialized: true } );
            }
        );
 
@@ -304,7 +366,14 @@ $( function() {
            }
        );
 
-       anychrome( { sources: [ ac_source_tabs, ac_source_history ] } );
+       if (typeof location_hash.window_id !== "undefined")
+           last_window_ids.unshift(location_hash.window_id);
+       anychrome(
+           {
+               sources: [ ac_source_tabs, ac_source_history ],
+               window_id: location_hash.window_id
+           }
+       );
        $("#anychrome_query").focus();
    } );
 
@@ -352,7 +421,6 @@ function anychrome(params) {
     // XXX ul は 新しく作りなおしたほうがよさそう(古いやつが挿入してくるかも...) & ul を current param に入れとく
     current_params = params;
     var sources = params.sources;
-    set_location_hash( { sources: sources.map( function(source) { return source.name; } ) } );
     sources.forEach(
         function(source) {
             source.deferred = {};
@@ -504,15 +572,48 @@ function do_first_action() {
     source.actions[0].fn(cands.map(function(cand) { return cand.entity; }));
 }
 
+function get_return_window (succ) {
+    console.log("last_focused");
+    console.log(last_focused_window);
+    Deferred.chain(
+        last_window_ids.map( //XXX 関数化
+            function(window_id){
+                return function () {
+                    var d = Deferred.call(
+                        chrome.windows.get(
+                            window_id,
+                            function(x) {
+                                console.log("get");
+                                console.log(x.id);
+                                if (typeof x === "undefined" || x.id === last_focused_window.id) {
+                                    d.call();
+                                } else {
+                                    console.log("before fail");
+                                    console.log(x.id);
+                                    succ(x);
+                                    d.fail(x);
+                                }
+                            }
+                        )
+                    );
+                };
+            }
+        )
+    );
+}
+
 function abort() {
     clean();
-    if (typeof location_hash.window_id !== "undefined") {
-        chrome.windows.update(
-            location_hash.window_id,
-            { focused: true },
-            function () { }
-        );
-    }
+    get_return_window(
+        function(_window) {
+            console.log("fail");
+            console.log(_window.id);
+            chrome.windows.update(
+                _window.id,
+                { focused: true }
+            );
+        }
+    );
     // chrome.windows.getCurrent( // XXX NOT WORKING
     //  function (_window) {
     //      chrome.windows.update(_window.id, { focused: false }, function () { } );

@@ -17,7 +17,7 @@ body {
         chrome.windows.getCurrent(
           function (_window) {
             var width = Math.min(_window.width, 600);
-            var window_bar_height = location_hash._external_open ? 50 : 22; // XXX OSX
+            var window_bar_height = location_hash._open_from ? 50 : 22; // XXX OSX
             if (!location_hash.window_id)
                 location_hash.window_id = _window.id;
             window.open(

@@ -51,13 +51,14 @@ var ac_source_tabs = {
     regex: true,
     migemo: 3
 };
+
 var ac_source_history = {
     name: "History",
     delayed: 0.1,
     requires_pattern: 3, // XXX not implemented
     // migemo: 3,
     // regex: true,
-    candidates: function(query, callback) {
+    candidates: function(callback, query) {
         // var has_non_letter = XRegExp("\\p{^L}");
         chrome.history.search(
             {
@@ -68,7 +69,7 @@ var ac_source_history = {
                 //      return words.length === 0 ? "" : ("("+ words.join(" OR ") + ")");
                 //     }
                 // ).join(" "),
-                text:query.join(" "),
+                text: query.join(" "),
                 startTime: (new Date()).getTime() - 60 * 60 * 24 * 365 * 1000,
                 endTime: (new Date()).getTime()
             },
@@ -117,58 +118,70 @@ var ac_source_history = {
 };
 
 function close_popup_html () {
-  chrome.tabs.query(
-    {
-       url: chrome.extension.getURL('popup.html')
-    }, function (tabs) {
-        if (tabs.length == 0) return;
-        var d = Deferred.parallel(
-            tabs.map( function(tab) { return Deferred.chrome.tabs.remove(tab.id); } )
-        ).next(
-            function() {
-                // if (window_id) fail(window_id);
-                Deferred.chain(
-                    window_ids.map(
-                        function(window_id){
-                            return function () {
-                                var d2 = Deferred.call(
-                                    chrome.windows.get(
-                                        window_id,
-                                        function(x) {
-                                            if (typeof x === "undefined") {
-                                                d2.call();
-                                            } else {
-                                                d2.fail(x);
-                                            }
+    chrome.tabs.query(
+        {
+            url: chrome.extension.getURL('popup.html')
+        }, function (tabs) {
+            if (tabs.length == 0) return;
+            Deferred.parallel(
+                tabs.map( function(tab) { return chrome.deferred.tabs.remove(tab.id); } )
+            ).next(
+                function() {
+                    // if (window_id) fail(window_id);
+                    get_return_window(
+                        function (_window) {
+                            chrome.windows.update(
+                                _window.id,
+                                { focused:true },
+                                function() {
+                                    chrome.windows.getCurrent(
+                                        function(window_id) {
+                                            chrome.windows.update(
+                                                window_id,
+                                                { focused:true }
+                                            );
                                         }
-                                    )
-                                );
-                            };
+                                    );
+                                }
+                            );
                         }
-                    )
-                );
-            }
-        ).error(
-            function(window_id) {
-                chrome.windows.update(
-                    window_id,
-                    { focused:true },
-                    function() {
-                        chrome.windows.getCurrent(
-                            function(window_id) {
-                                chrome.windows.update(
-                                    window_id,
-                                    { focused:true }
-                                );
-                            }
-                        );
-                    }
-                );
-            }
-        );
-    }
-  );
+                    );
+                }
+            );
+        }
+    );
 }
+
+function get_migemo_regex (q, threshold, callback) {
+    var queries = q.filter(
+        function (x) { return x.length >= threshold; }
+    );
+    if (queries.length == 0)
+        callback( q.map( function (word) { return [ word ];} ) );
+    else {
+        try {
+            chrome.extension.sendRequest(
+                'pocnedlaincikkkcmlpcbipcflgjnjlj',
+                {
+                    "action": "getCompletion",
+                    "query": queries.join(" ")
+                },
+                function(res) {
+                    callback(
+                        q.filter(
+                            function (x) { return x.length < threshold; }
+                        ).map(
+                            function (word) { return [ word ];}
+                        ).concat(res ? (res.result || []) : [] )
+                    );
+                }
+            );
+        } catch (exception) {
+            callback( q.map( function (word) { return [ word ];} ) );
+        }
+    }
+}
+
 
 // focus があたったのが古い順?
 var last_window_ids = [];
@@ -200,6 +213,7 @@ $(
     }
 );
 
+var current_params;
 $( function() {
        var location_hash = {};
 
@@ -287,6 +301,7 @@ $( function() {
        $("#anychrome_query").bind(
            "textchange",
            function (event) {
+               current_params.ul = $("<ul>");
                var q = $("#anychrome_query").attr("value").split(new RegExp(" +")).filter(
                    function(x) { return x !== ""; }
                );
@@ -301,68 +316,75 @@ $( function() {
                    }
                );
 
-               var qs = q.filter(
-                   function(x){ return x.length < migemo_threshold; }
-               ).map(function(x) { return [x]; });
-
-               var regs = qs.map(
-                   function(words) { return words[0].replace(/([^0-9A-Za-z_])/g, '\\$1'); }
-               );
-               var reg;
-               Deferred.chain(
+               var qs, regs, reg;
+               console.log(current_params.defer.canceller);
+               current_params.defer.cancel();
+               var canceled = false;
+               var defer = current_params.defer = Deferred.chain(
                    Deferred.connect(
-                       function(succ) {
-                           var queries = q.filter(
-                               function(x){ return x.length >= migemo_threshold; }
-                           );
-                           if (queries.length == 0)
-                               succ([]);
-                           else {
-                               try {
-                                   chrome.extension.sendRequest(
-                                       'pocnedlaincikkkcmlpcbipcflgjnjlj',
-                                       {
-                                           "action": "getCompletion",
-                                           "query": queries.join(" ")
-                                       },
-                                       function(res){ succ( res.result ); }
-                                   );
-                               } catch (exception) {
-                                   succ( q.map(function(x) { return [ x.replace(/([^0-9A-Za-z_])/g, '\\$1') ]; }) );
-                               }
-                           }
-                       },
-                       { target: chrome.extension, ok:0 }
+                       function(callback) {
+                           get_migemo_regex(q, migemo_threshold, callback);
+                       }, { ok: 0 }
                    ),
                    function (res) {
-                       [].push.apply(qs,res);
+                       qs = res;
                        regs = qs.map(
                            function(words) {
-                               return words.join("|");
+                               return words.map(
+                                   function (word) {
+                                       return word.replace(/([^0-9A-Za-z_])/g, '\\$1');
+                                   }
+                               ).join("|");
                            }
                        );
                        reg =  regs.join("|"); // for highlight
                        reg = reg === "" ? false : new RegExp(reg, "i");
                        regs = regs.map( function(reg) { return new RegExp(reg, "i"); } );
+                       return Deferred.wait(0);
                    },
-                   function () {
-                       current_params.sources.forEach(
-                           function(source) {
-                               if (typeof source.delayed !== "undefined") {
-                                   var transformed = source.transformed_candidates = [];
-                                   source.deferred.candidates(
-                                       source.regex ? regs : source.migemo ? qs : q
-                                   ).next(
-                                       deferred_transform_candidates(source)
-                                   ).next(
-                                       function(){ redisplay(reg, regs); }
-                                   );
+                   current_params.sources.map(
+                       function(source) {
+                           return function() {
+                               if (typeof source.delayed === "undefined") return;
+                               var transformed = source.transformed_candidates = [];
+                               source.candidates(
+                                   function (candidates) {
+                                       if (defer.canceled) return;
+                                       defer.children.push(
+                                           Deferred.chain(
+                                               function() {
+                                                   deferred_transform_candidates(
+                                                       source, candidates
+                                                   );
+                                               },
+                                               function () {
+                                                   return Deferred.wait(0);
+                                               },
+                                               function () { redisplay(reg, regs); }
+                                           )
+                                       );
+                                   },
+                                   source.regex ? regs : source.migemo ? qs : q
+                               );
+                           };
+                       }
+                   ).concat(
+                       function () {
+                            return Deferred.wait(0).next(
+                               function() {
+                                   redisplay(reg, regs); //XXX 必要なときだけ.
                                }
-                           }
-                       );
-                       redisplay(reg, regs);
-                   }
+                           );
+                       }
+                   )
                );
+               defer.children = [];
+               defer.canceller = // XXX not open api
+               function () {
+	           (this.canceller || function () {})();
+                   defer.canceled = true;
+                   defer.children.forEach(function(d) { d.cancel(); });
+               };
            }
        );
 
@@ -376,6 +398,110 @@ $( function() {
        );
        $("#anychrome_query").focus();
    } );
+
+function anychrome(params) {
+    // XXX ul は 新しく作りなおしたほうがよさそう(古いやつが挿入してくるかも...) & ul を current param に入れとく
+    current_params = params;
+    var sources = params.sources;
+    sources.forEach(
+        function(source) {
+            source.transformed_candidates = [];
+            source.marked_candidates = {}; // XXX どっかで開放する.
+        }
+    );
+    var defer = current_params.defer = Deferred.parallel(
+        sources.map(
+            function(source) {
+                return Deferred.next(
+                    function() {
+                        ((typeof (source.candidates) !== "function")
+                         ? function(callback) { callback(source.candidates); }
+                         : source.candidates) (
+                            function (candidates) {
+                                if (defer.canceled) return;
+                                defer.children.push(
+                                    Deferred.chain(
+                                        function () {
+                                            return deferred_transform_candidates(
+                                                source, candidates
+                                            );
+                                        },
+                                        function () { return Deferred.wait(0); },
+                                        function () { redisplay("", []); }
+                                    )
+                                );
+                            }
+                            ,source.regex ? "" : []
+                        );
+                        redisplay("", []); //XXX 必要なときだけ.
+                    }
+                );
+            }
+        )
+    );
+    defer.children = [];
+    defer.canceller = // XXX not open api
+        function () {
+	    (this.canceller || function () {})();
+            defer.canceled = true;
+            defer.children.forEach(function(d) { d.cancel(); });
+        };
+}
+
+function deferred_transform_candidates (source, candidates) {
+    return Deferred.next(
+        function () {
+            var list = source.candidates_transformer(candidates);
+            list.forEach(
+                function(cand) {
+                    if(!cand.element) cand.element = $("<li>").text(cand.name);
+                }
+            );
+            [].push.apply(source.transformed_candidates, list);
+        }
+    );
+}
+
+function redisplay(reg, regs) {
+    var params = current_params;
+    var c = 0;
+    var n = params.sources.length;
+    $("#anychrome_candidates.anychrome_selected:first").removeClass("anychrome_selected");
+    $("#anychrome_candidates").empty();
+    var is_first = true;
+    for (var i = 0; i < n; ++i) {
+        var source = params.sources[i];
+        ++c;
+        $("#anychrome_candidates").append(
+            $("<li>").text(source.name).addClass("anychrome_section")
+        );
+        var cands = source.transformed_candidates;
+        var m = cands.length;
+        var k = 0;
+        for (var j = 0; j < m; ++j) {
+            var cand = cands[j];
+            ++c;
+            if (highlight(source, reg, regs, cand)) {
+                k++;
+                $("#anychrome_candidates").append( cand.element );
+                $(cand.element).attr("data-source-index", i);
+                $(cand.element).attr("data-cand-index", j);
+                $(cand.element).attr("data-cand-id", cand_id(cand));
+                $(cand.element).removeClass((k % 2 === 1) ? "anychrome_odd" : "anychrome_even");
+                $(cand.element).addClass((k % 2 === 1) ? "anychrome_even" : "anychrome_odd");
+                if(is_first) {
+                    $(cand.element).addClass("anychrome_selected");
+                    is_first = false;
+                } else {
+                    $(cand.element).removeClass("anychrome_selected");
+                }
+                if(is_marked(i, cand_id(cand))) {
+                    $(cand.element).addClass("anychrome_marked");
+                }
+            }
+        }
+    }
+}
 
 function highlight (source, reg, regs, cand) {
     $("span.anychrome_highlighted", cand.element).each(
@@ -414,88 +540,6 @@ function highlight (source, reg, regs, cand) {
     for( var i = 0; i < n; ++i )
         if(!flag[i]) return false;
     return true;
-}
-
-var current_params;
-function anychrome(params) {
-    // XXX ul は 新しく作りなおしたほうがよさそう(古いやつが挿入してくるかも...) & ul を current param に入れとく
-    current_params = params;
-    var sources = params.sources;
-    sources.forEach(
-        function(source) {
-            source.deferred = {};
-            source.deferred.candidates = Deferred.connect(
-                (typeof (source.candidates) !== "function")
-                    ? function(callback) { callback(source.candidates); }
-                : source.candidates,
-                { target: source, ok: source.delayed ? 1 : 0 }
-            );
-            source.transformed_candidates = [];
-            source.marked_candidates = {}; // XXX どっかで開放する.
-            source.deferred.candidates("").next(
-                deferred_transform_candidates(source)
-            ).next(
-                function() { redisplay(""); }
-            );
-        }
-    );
-}
-
-function deferred_transform_candidates (source) {
-    return function (candidates) {
-        return Deferred.next(
-            function () {
-                var list = source.candidates_transformer(candidates);
-                list.forEach(
-                    function(cand) {
-                        if(!cand.element) cand.element = $("<li>").text(cand.name);
-                    }
-                );
-                [].push.apply(source.transformed_candidates, list);
-            }
-        );
-    };
-}
-
-function redisplay(reg, regs) {
-    var params = current_params;
-    var c = 0;
-    var n = params.sources.length;
-    $("#anychrome_candidates.anychrome_selected:first").removeClass("anychrome_selected");
-    $("#anychrome_candidates").empty();
-    var is_first = true;
-    for (var i = 0; i < n; ++i) {
-        var source = params.sources[i];
-        ++c;
-        $("#anychrome_candidates").append(
-            $("<li>").text(source.name).addClass("anychrome_section")
-        );
-        var cands  = source.transformed_candidates;
-        var m = cands.length;
-        var k = 0;
-        for (var j = 0; j < m; ++j) {
-            var cand = cands[j];
-            ++c;
-            if (highlight(source, reg, regs, cand)) {
-                k++;
-                $("#anychrome_candidates").append( cand.element );
-                $(cand.element).attr("data-source-index", i);
-                $(cand.element).attr("data-cand-index", j);
-                $(cand.element).attr("data-cand-id", cand_id(cand));
-                $(cand.element).removeClass((k % 2 === 1) ? "anychrome_odd" : "anychrome_even");
-                $(cand.element).addClass((k % 2 === 1) ? "anychrome_even" : "anychrome_odd");
-                if(is_first) {
-                    $(cand.element).addClass("anychrome_selected");
-                    is_first = false;
-                } else {
-                    $(cand.element).removeClass("anychrome_selected");
-                }
-                if(is_marked(i, cand_id(cand))) {
-                    $(cand.element).addClass("anychrome_marked");
-                }
-            }
-        }
-    }
 }
 
 function cand_id(cand) {
@@ -576,27 +620,21 @@ function get_return_window (succ) {
     console.log("last_focused");
     console.log(last_focused_window);
     Deferred.chain(
-        last_window_ids.map( //XXX 関数化
-            function(window_id){
-                return function () {
-                    var d = Deferred.call(
-                        chrome.windows.get(
-                            window_id,
-                            function(x) {
-                                console.log("get");
-                                console.log(x.id);
-                                if (typeof x === "undefined" || x.id === last_focused_window.id) {
-                                    d.call();
-                                } else {
-                                    console.log("before fail");
-                                    console.log(x.id);
-                                    succ(x);
-                                    d.fail(x);
-                                }
-                            }
-                        )
-                    );
-                };
+        last_window_ids.map(
+            function(window_id) {
+                var d = new Deferred();
+                chrome.windows.get(
+                    window_id,
+                    function(x) {
+                        if (typeof x === "undefined" || x.id === last_focused_window.id) {
+                            d.call();
+                        } else {
+                            succ(x);
+                            d.fail();
+                        }
+                    }
+                );
+                return d;
             }
         )
     );

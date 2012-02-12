@@ -1,0 +1,49 @@
+<style>
+body {
+  display:none;
+}
+</style>
+<script>
+  location_hash = {};
+  if (document.location.hash !== "" && document.location.hash !== "#")
+      try {
+          location_hash = JSON.parse(location.hash.substr(1));
+      } catch (x) {}
+  chrome.tabs.query(
+    {
+       url: chrome.extension.getURL('popup.html')
+    }, function (tabs) {
+      if (tabs.length === 0) {
+        chrome.windows.getCurrent(
+          function (_window) {
+            var width = Math.min(_window.width, 600);
+            var window_bar_height = location_hash._open_from ? 50 : 22; // XXX OSX
+            if (!location_hash.window_id)
+                location_hash.window_id = _window.id;
+            window.open(
+                chrome.extension.getURL('popup.html#' + JSON.stringify(location_hash)), "anychrome_main",
+                "width=" + width + ", height=" + (_window.height - 72 - window_bar_height) + ", top=" + (_window.top + 72) + ", left=" + (_window.left + _window.width - width) +
+                ", menubar=no, toolbar=no, scrollbars=no"
+            );
+          }
+        )
+      } else {
+        chrome.windows.update(tabs[0].windowId, { focused : true }, function () { } );
+        chrome.windows.getCurrent(
+          function (_window) {
+            if (location_hash.window_id)
+                location_hash.window_id = _window.id;
+            chrome.tabs.update(
+              tabs[0].id,
+              {
+                active : true,
+                url: chrome.extension.getURL('popup.html#' + JSON.stringify(location_hash))
+              },
+              function () {}
+            );
+          }
+        );
+      }
+    }
+  );
+</script>

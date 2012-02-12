@@ -145,7 +145,7 @@ Function.prototype.throttle_debounce = function (t_msec, d_msec) {
 function close_popup_html () {
     chrome.tabs.query(
         {
-            url: chrome.extension.getURL('popup.html')
+            url: chrome.extension.getURL('trigger.html')
         }, function (tabs) {
             if (tabs.length == 0) return;
             Deferred.parallel(
@@ -153,16 +153,16 @@ function close_popup_html () {
             ).next(
                 function() {
                     // if (window_id) fail(window_id);
-                    get_return_window(
-                        function (_window) {
-                            chrome.windows.update(
-                                _window.id,
-                                { focused:true },
-                                function() {
-                                    chrome.windows.getCurrent(
-                                        function(window_id) {
+                    chrome.windows.getLastFocused(
+                        function(_popup_window) {
+			    get_return_window(
+				function (_window) {
+				    chrome.windows.update(
+					_window.id,
+					{ focused:true },
+					function() {
                                             chrome.windows.update(
-                                                window_id,
+                                                _popup_window.id,
                                                 { focused:true }
                                             );
                                         }
@@ -664,21 +664,23 @@ function get_return_window (succ) {
 
 function abort() {
     clean();
-    get_return_window(
-        function(_window) {
-            console.log("fail");
-            console.log(_window.id);
-            chrome.windows.update(
-                _window.id,
-                { focused: true }
-            );
-        }
+    chrome.windows.getCurrent(
+	function(_window) {
+	    if (_window.type === "popup")
+		get_return_window(
+		    function(_window) {
+			console.log("fail");
+			console.log(_window.id);
+			chrome.windows.update(
+			    _window.id,
+			    { focused: true }
+			);
+		    }
+		)
+	    else
+		window.close();
+	}
     );
-    // chrome.windows.getCurrent( // XXX NOT WORKING
-    //  function (_window) {
-    //      chrome.windows.update(_window.id, { focused: false }, function () { } );
-    //  }
-    // );
 }
 
 function clean() {

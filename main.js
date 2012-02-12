@@ -117,6 +117,31 @@ var ac_source_history = {
     ]
 };
 
+Function.prototype.throttle_debounce = function (t_msec, d_msec) {
+    var debounce_id, throttle_on;
+    var me = this;
+    return function () {
+        var self = this;
+        var args = arguments;
+        if (debounce_id) {
+            clearTimeout(debounce_id);
+            debounce_id = false;
+        }
+        if (!throttle_on ||
+            (new Date).getTime() - throttle_on.getTime() > t_msec)
+        {
+            throttle_on = new Date;
+            me.apply(self, args);
+        } else {
+            debounce_id = setTimeout(
+                function () { me.apply(self, args); }, d_msec
+            );
+        }
+    };
+};
+
+
+
 function close_popup_html () {
     chrome.tabs.query(
         {
@@ -124,7 +149,7 @@ function close_popup_html () {
         }, function (tabs) {
             if (tabs.length == 0) return;
             Deferred.parallel(
-                tabs.map( function(tab) { return chrome.deferred.tabs.remove(tab.id); } )
+                tabs.map( function(tab) { return Deferred.chrome.tabs.remove(tab.id); } )
             ).next(
                 function() {
                     // if (window_id) fail(window_id);
@@ -300,7 +325,7 @@ $( function() {
        var prev_q;
        $("#anychrome_query").bind(
            "textchange",
-           function (event) {
+           (function (event) {
                current_params.ul = $("<ul>");
                var q = $("#anychrome_query").attr("value").split(new RegExp(" +")).filter(
                    function(x) { return x !== ""; }
@@ -317,7 +342,6 @@ $( function() {
                );
 
                var qs, regs, reg;
-               console.log(current_params.defer.canceller);
                current_params.defer.cancel();
                var canceled = false;
                var defer = current_params.defer = Deferred.chain(
@@ -385,7 +409,7 @@ $( function() {
                    defer.canceled = true;
                    defer.children.forEach(function(d) { d.cancel(); });
                };
-           }
+           }).throttle_debounce(500, 200)
        );
 
        if (typeof location_hash.window_id !== "undefined")
@@ -418,7 +442,6 @@ function anychrome(params) {
                          ? function(callback) { callback(source.candidates); }
                          : source.candidates) (
                             function (candidates) {
-                                if (defer.canceled) return;
                                 defer.children.push(
                                     Deferred.chain(
                                         function () {
@@ -433,7 +456,6 @@ function anychrome(params) {
                             }
                             ,source.regex ? "" : []
                         );
-                        redisplay("", []); //XXX 必要なときだけ.
                     }
                 );
             }

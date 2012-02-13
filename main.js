@@ -18,9 +18,9 @@ Function.prototype.throttle_debounce = function (t_msec, d_msec) {
             debounce_id = false;
         }
         if (!throttle_on ||
-            (new Date).getTime() - throttle_on.getTime() > t_msec)
+            (new Date()).getTime() - throttle_on.getTime() > t_msec)
         {
-            throttle_on = new Date;
+            throttle_on = new Date();
             me.apply(self, args);
         } else {
             debounce_id = setTimeout(
@@ -258,7 +258,7 @@ $( function() {
 			]
                     )
 		);
-            }).throttle_debounce(600, 300)
+            }).throttle_debounce(400, 300)
        );
 
        if (typeof location_hash.window_id !== "undefined")

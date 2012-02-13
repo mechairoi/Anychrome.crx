@@ -221,25 +221,11 @@ $( function() {
 				    function(candidates) {
 					if (defer.canceled) return;
 					defer.children.push(
-					    Deferred.chain(
-						function () {
-						    return deferred_transform_candidates(
-							source, candidates
-						    );
-						},
-						function (transformed) {
-						    transformed.forEach(
-							function(x){
-							    x.element = $(x.element)[0];
-							}
-						    );
-						    [].push.apply(
-							source.transformed_candidates,
-							transformed
-						    );
-						},
-						function () { return Deferred.wait(0); },
-						function () { redisplay(reg, regs); }
+					    deferred_transform_display(
+						source,
+						candidates,
+						reg,
+						regs
 					    )
 					);
 				    }
@@ -275,7 +261,34 @@ $( function() {
            }
        );
        $("#anychrome_query").focus();
-   } );
+   }
+);
+
+function deferred_transform_display (source, candidates, reg, regs) {
+    return Deferred.chain(
+	function () {
+	    return Deferred.chrome.extension.sendRequest(
+		source.extensionId,
+		{
+		    type: "candidatesTransformer",
+		    name: source.name,
+		    args: [ candidates ]
+		}
+	    );
+	},
+	function (transformed) {
+	    transformed.forEach(
+		function(x) { x.element = $(x.element)[0]; }
+	    );
+	    [].push.apply(
+		source.transformed_candidates,
+		transformed
+	    );
+	},
+	function () { return Deferred.wait(0); },
+	function () { redisplay(reg, regs); }
+    );
+}
 
 var parser = new DOMParser();
 
@@ -314,25 +327,11 @@ function anychrome(params) {
 			    },
 			    function(candidates) {
 				defer.children.push(
-				    Deferred.chain(
-					function () {
-					    return deferred_transform_candidates(
-						source, candidates
-					    );
-					},
-					function (transformed) {
-					    transformed.forEach(
-						function(x){
-						    x.element = $(x.element)[0];
-						}
-					    );
-					    [].push.apply(
-						source.transformed_candidates,
-						transformed
-					    );
-					},
-					function () { return Deferred.wait(0); },
-					function () { redisplay("", []); }
+				    deferred_transform_display(
+					source,
+					candidates,
+					"",
+					[]
 				    )
 				);
 			    }
@@ -344,16 +343,6 @@ function anychrome(params) {
     );
 }
 
-function deferred_transform_candidates (source, candidates) {
-    return Deferred.chrome.extension.sendRequest(
-	source.extensionId,
-	{
-	    type: "candidatesTransformer",
-	    name: source.name,
-	    args: [ candidates ]
-	}
-    );
-}
 
 function redisplay(reg, regs) {
     var params = current_params;

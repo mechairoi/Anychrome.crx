@@ -469,6 +469,7 @@ function select_next(){
         $(_selected_element()).removeClass("anychrome_selected");
         $(next).addClass("anychrome_selected");
     }
+    scroll_if_require();
 }
 function select_prev(){
     var prev = _selected_element().previousSibling;
@@ -478,6 +479,18 @@ function select_prev(){
     if(prev) {
         $(_selected_element()).removeClass("anychrome_selected");
         $(prev).addClass("anychrome_selected");
+    }
+    scroll_if_require();
+}
+function scroll_if_require () {
+    var ul = $("#anychrome_candidates");
+    var top = ul.scrollTop();
+    var height = ul.height();
+    var y = $(_selected_element()).position().top;
+    if ( y <= 60 ) {
+	ul.scrollTop(top + y - 60);
+    } else if ( height - 30 < y ) {
+	ul.scrollTop(top + y - height + 30);
     }
 }
 function toggle_mark(){

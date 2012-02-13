@@ -16,14 +16,14 @@
       }
       body {
         margin: 0px;
-        overflow-x: hidden;
+        overflow: hidden;
         font-size: 0.8em;
         color: #777;
         font-family:'Helvetica','Arial','Hiragino Kaku Gothic Pro',Meiryo,'MS PGothic',sans-serif;
       }
       ul {
         width: 100%;
-        overflow: hidden;
+        overflow-x: hidden;
         margin: 0px;
         padding: 0px;
       }
@@ -103,6 +103,14 @@
         background:#333;
       }
     </style>
+    <script>
+      $(function() {
+        $("ul").css(
+          "height",
+          $(window).height() - $("#anychrome_query").height() - 12
+        );
+      });
+    </script>
   </head>
   <body>
     <input id="anychrome_query" type="text" spellcheck="false" autocomplete="off"/>

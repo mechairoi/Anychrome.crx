@@ -91,7 +91,7 @@
       {
         background:#eee;
       }
-      #scrollbar03::-webkit-scrollbar-piece:start
+      ::-webkit-scrollbar-piece:start
       {
         background:#eee;
       }
@@ -107,7 +107,10 @@
       $(function() {
         $("ul").css(
           "height",
-          $(window).height() - $("#anychrome_query").height() - 12
+          Math.max(
+            500,
+            ($(window).height() - $("#anychrome_query").height() - 12)
+          )
         );
       });
     </script>

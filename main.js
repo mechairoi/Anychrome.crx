@@ -4,118 +4,8 @@
  *
  * Released under the MIT License
  */
-// source spec
-// init : XXX not implemented
-// candidates : array or function returns something array
-// candidates_transformer : (optional) function returns [ dom element || string ] or [ [ dom element, object ] .. ], default identity
-// migemo: letters #XXX not implemented
-// regex: XXX
-// type : not implemented
-// actions の引数は一つ以上の要素を持つリスト
-var ac_source_tabs = {
-    name: "Tabs",
-    candidates: function (callback) {
-        chrome.tabs.query({}, callback);
-    },
-    candidates_transformer: function (tabs) {
-        return tabs.map(
-            function(tab) {
-                return {
-                    id : tab.id.toString(),
-                    element : $("<li>").addClass("nowrap").append(
-                        $('<img>').addClass('favicon').attr({"src": tab.favIconUrl, width: "16px", height: "16px"}),
-                        $('<span>').text(tab.title),
-                        $('<span>').addClass('url').text(
-                            tab.url.match("^http://") ? tab.url.substr(7) : tab.url
-                        )
-                    )[0],
-                    entity: tab
-                };
-            }
-        );
-    },
-    actions: [
-        {
-            name: "Switch",
-            fn  : function (tabs) {
-                chrome.tabs.update(tabs[0].id, { selected : true });
-            }
-        },
-        {
-            name: "Close",
-            fn  : function (tabs) {
-                tabs.forEach(function(tab) { chrome.tabs.remove(tab.id, function () {} ); });
-            }
-        }
-    ],
-    regex: true,
-    migemo: 3
-};
 
-var ac_source_history = {
-    name: "History",
-    delayed: 0.1,
-    requires_pattern: 3, // XXX not implemented
-    // migemo: 3,
-    // regex: true,
-    candidates: function(callback, query) {
-        // var has_non_letter = XRegExp("\\p{^L}");
-        chrome.history.search(
-            {
-                // text: regs.map(function(reg) { return reg.source; } ).join(" "),
-                // text:query.map(
-                //     function(words) {
-                //      words = words.filter(function (word) { return !has_non_letter.test(word); });
-                //      return words.length === 0 ? "" : ("("+ words.join(" OR ") + ")");
-                //     }
-                // ).join(" "),
-                text: query.join(" "),
-                startTime: (new Date()).getTime() - 60 * 60 * 24 * 365 * 1000,
-                endTime: (new Date()).getTime()
-            },
-            callback
-        );
-    },
-    candidates_transformer: function(history_items) {
-        return history_items.map(
-            function(history_item) {
-                return {
-                    id: history_item.id,
-                    name: history_item.url + history_item.title,
-                    element: $("<li>").addClass("nowrap").append(
-                        $('<span>').text(history_item.title),
-                        $('<span>').addClass('url').text(
-                            history_item.url.match("^http://") ? history_item.url.substr(7) : history_item.url
-                        )
-                    )[0],
-                    entity: history_item
-                };
-            }
-        );
-    },
-    actions: [
-        // {
-        //     name: "Open in current tab",
-        //     fn  : function (history_items) {
-        //     }
-        // },
-        {
-            name: "Open in new tab",
-            fn  : function (history_items) {
-                history_items.forEach(
-                    function (history_item) {
-                        chrome.tabs.create({url: history_item.url}, function () {});
-                    }
-                );
-            }
-        }
-        // {
-        //     name: "Open in new window",
-        //     fn  : function (history_items) {
-        //     }
-        // }
-    ]
-};
+var extensionId = chrome.extension.getURL("").substr(19,32);
 
 Function.prototype.throttle_debounce = function (t_msec, d_msec) {
     var debounce_id, throttle_on;
@@ -140,103 +30,41 @@ Function.prototype.throttle_debounce = function (t_msec, d_msec) {
     };
 };
 
-
-
-function close_popup_html () {
-    chrome.tabs.query(
-        {
-            url: chrome.extension.getURL('trigger.html')
-        }, function (tabs) {
-            if (tabs.length == 0) return;
-            Deferred.parallel(
-                tabs.map( function(tab) { return Deferred.chrome.tabs.remove(tab.id); } )
-            ).next(
-                function() {
-                    // if (window_id) fail(window_id);
-                    chrome.windows.getLastFocused(
-                        function(_popup_window) {
-			    get_return_window(
-				function (_window) {
-				    chrome.windows.update(
-					_window.id,
-					{ focused:true },
-					function() {
-                                            chrome.windows.update(
-                                                _popup_window.id,
-                                                { focused:true }
-                                            );
-                                        }
-                                    );
-                                }
-                            );
-                        }
-                    );
-                }
-            );
-        }
-    );
-}
-
-function get_migemo_regex (q, threshold, callback) {
+function get_migemo_regex (q, threshold) {
     var queries = q.filter(
         function (x) { return x.length >= threshold; }
     );
     if (queries.length == 0)
-        callback( q.map( function (word) { return [ word ];} ) );
-    else {
-        try {
-            chrome.extension.sendRequest(
-                'pocnedlaincikkkcmlpcbipcflgjnjlj',
-                {
-                    "action": "getCompletion",
-                    "query": queries.join(" ")
-                },
-                function(res) {
-                    callback(
-                        q.filter(
-                            function (x) { return x.length < threshold; }
-                        ).map(
-                            function (word) { return [ word ];}
-                        ).concat(res ? (res.result || []) : [] )
-                    );
-                }
-            );
-        } catch (exception) {
-            callback( q.map( function (word) { return [ word ];} ) );
-        }
-    }
-}
+	return Deferred.next(
+	    function(){
+		return q.map( function (word) { return [ word ];} );
+	    }
+	);
 
-
-// focus があたったのが古い順?
-var last_window_ids = [];
-var last_focused_window;
-$(
-    function() {
-        chrome.windows.getLastFocused(
-            function(_window) {
-                last_focused_window = _window;
-                chrome.windows.getAll(
-                    {},
-                    function(_windows) {
-                        last_window_ids = _windows
-                            .map   (function(w)  { return w.id; })
-                            .filter(function(x) { return x != last_focused_window.id; });
-                        chrome.windows.onFocusChanged.addListener(
-                            function(id) {
-                                if (id > 0 && id != last_focused_window.id) {
-                                    console.log(id);
-                                    last_window_ids = last_window_ids.filter( function(x) { return x != id; } );
-                                    last_window_ids.unshift(id);
-                                }
-                            }
-                        );
-                    }
+    var d = new Deferred();
+    try {
+        chrome.extension.sendRequest(
+            'pocnedlaincikkkcmlpcbipcflgjnjlj',
+            {
+                action: "getCompletion",
+                query: queries.join(" ")
+            },
+            function(res) {
+                d.call(
+                    q.filter(
+                        function (x) { return x.length < threshold; }
+                    ).map(
+                        function (word) { return [ word ];}
+                    ).concat(res ? (res.result || []) : [] )
                 );
             }
         );
+    } catch (exception) {
+        d.call( q.map( function (word) { return [ word ];} ) );
     }
-);
+    return d;
+}
+
 
 var current_params;
 $( function() {
@@ -326,161 +154,204 @@ $( function() {
        $("#anychrome_query").bind(
            "textchange",
            (function (event) {
-               current_params.ul = $("<ul>");
-               var q = $("#anychrome_query").attr("value").split(new RegExp(" +")).filter(
-                   function(x) { return x !== ""; }
-               );
-               if (q.join(" ") === prev_q) return;
-               prev_q = q.join(" ");
+		var q = $("#anychrome_query").attr("value").split(
+		    new RegExp(" +")
+		).filter(
+                    function(x) { return x !== ""; }
+		);
+		if (q.join(" ") === prev_q) return;
+		prev_q = q.join(" ");
 
-               var migemo_threshold = 100;
-               current_params.sources.forEach(
-                   function(source) {
-                       if (source.migemo && source.migemo < migemo_threshold)
-                           migemo_threshold = source.migemo;
-                   }
-               );
+		var migemo_threshold = 100;
+		current_params.sources.forEach(
+                    function(source) {
+			if (source.migemo && source.migemo < migemo_threshold)
+                            migemo_threshold = source.migemo;
+                    }
+		);
 
-               var qs, regs, reg;
-               current_params.defer.cancel();
-               var canceled = false;
-               var defer = current_params.defer = Deferred.chain(
-                   Deferred.connect(
-                       function(callback) {
-                           get_migemo_regex(q, migemo_threshold, callback);
-                       }, { ok: 0 }
-                   ),
-                   function (res) {
-                       qs = res;
-                       regs = qs.map(
-                           function(words) {
-                               return words.map(
-                                   function (word) {
-                                       return word.replace(/([^0-9A-Za-z_])/g, '\\$1');
-                                   }
-                               ).join("|");
-                           }
-                       );
-                       reg =  regs.join("|"); // for highlight
-                       reg = reg === "" ? false : new RegExp(reg, "i");
-                       regs = regs.map( function(reg) { return new RegExp(reg, "i"); } );
-                       return Deferred.wait(0);
-                   },
-                   current_params.sources.map(
-                       function(source) {
-                           return function() {
-                               if (typeof source.delayed === "undefined") return;
-                               var transformed = source.transformed_candidates = [];
-                               source.candidates(
-                                   function (candidates) {
-                                       if (defer.canceled) return;
-                                       defer.children.push(
-                                           Deferred.chain(
-                                               function() {
-                                                   deferred_transform_candidates(
-                                                       source, candidates
-                                                   );
-                                               },
-                                               function () {
-                                                   return Deferred.wait(0);
-                                               },
-                                               function () { redisplay(reg, regs); }
-                                           )
-                                       );
-                                   },
-                                   source.regex ? regs : source.migemo ? qs : q
-                               );
-                           };
-                       }
-                   ).concat(
-                       function () {
-                            return Deferred.wait(0).next(
-                               function() {
-                                   redisplay(reg, regs); //XXX 必要なときだけ.
-                               }
-                           );
-                       }
-                   )
-               );
-               defer.children = [];
-               defer.canceller = // XXX not open api
-               function () {
-	           (this.canceller || function () {})();
-                   defer.canceled = true;
-                   defer.children.forEach(function(d) { d.cancel(); });
-               };
-           }).throttle_debounce(500, 200)
+		var qs, regs, reg;
+		current_params.defer.cancel();
+		var canceled = false;
+		var defer = current_params.defer = Deferred.chain(
+		    function () {
+			defer.children = [];
+			defer.canceller = // XXX not open api
+			function () {
+			    (this.canceller || function () {})();
+			    defer.canceled = true;
+			    defer.children.forEach(function(d) { d.cancel(); });
+			};
+		    },
+		    function () {
+			return get_migemo_regex(q, migemo_threshold);
+		    },
+                    function (res) {
+			qs = res;
+			regs = qs.map(
+                            function(words) {
+				return words.map(
+                                    function (word) {
+					return word.replace(/([^0-9A-Za-z_])/g, '\\$1');
+                                    }
+				).join("|");
+                            }
+			);
+			reg =  regs.join("|"); // for highlight
+			reg = reg === "" ? false : new RegExp(reg, "i");
+			regs = regs.map(
+			    function(reg) {
+				return new RegExp(reg, "i");
+			    }
+			);
+			return Deferred.wait(0);
+                    },
+                    current_params.sources.map(
+			function(source) {
+                            return function() {
+				if (typeof source.delayed === "undefined") return;
+				var transformed = source.transformed_candidates = [];
+				chrome.extension.sendRequest(
+				    source.extensionId,
+				    {
+					type: "candidates",
+					name: source.name,
+					args: [ source.regex ? regs : source.migemo ? qs : q ]
+				    },
+				    function(candidates) {
+					if (defer.canceled) return;
+					defer.children.push(
+					    Deferred.chain(
+						function () {
+						    return deferred_transform_candidates(
+							source, candidates
+						    );
+						},
+						function (transformed) {
+						    transformed.forEach(
+							function(x){
+							    x.element = $(x.element)[0];
+							}
+						    );
+						    [].push.apply(
+							source.transformed_candidates,
+							transformed
+						    );
+						},
+						function () { return Deferred.wait(0); },
+						function () { redisplay(reg, regs); }
+					    )
+					);
+				    }
+				);
+                            };
+			}
+                    ).concat(
+			[
+			    function () {
+				return Deferred.wait(0).next(
+				    function() {
+					redisplay(reg, regs); //XXX only if require
+				    }
+				);
+			    }
+			]
+                    )
+		);
+            }).throttle_debounce(600, 300)
        );
 
        if (typeof location_hash.window_id !== "undefined")
            last_window_ids.unshift(location_hash.window_id);
        anychrome(
            {
-               sources: [ ac_source_tabs, ac_source_history ],
+               sources: [
+		   [false, 'tab'],
+		   [false, 'history_day'],
+		   [false, 'history_week'],
+		   [false, 'history_month']
+	       ],
                window_id: location_hash.window_id
            }
        );
        $("#anychrome_query").focus();
    } );
 
+var parser = new DOMParser();
+
 function anychrome(params) {
-    // XXX ul は 新しく作りなおしたほうがよさそう(古いやつが挿入してくるかも...) & ul を current param に入れとく
+    // XXX recreate <ul> element ?
     current_params = params;
-    var sources = params.sources;
-    sources.forEach(
-        function(source) {
-            source.transformed_candidates = [];
-            source.marked_candidates = {}; // XXX どっかで開放する.
-        }
+
+    var defer = current_params.defer = Deferred.chain(
+	function () {
+	    return Deferred.chrome.extension.sendRequest(
+		extensionId,
+		{
+		    type: "getSources",
+		    args: params.sources
+		}
+	    );
+	},
+	function (sources) {
+	    params.sources = sources;
+	    sources.forEach(
+		function(source) {
+		    source.transformed_candidates = [];
+		    source.marked_candidates = {}; // XXX release?
+		}
+	    );
+	    defer = current_params.defer = Deferred.chain(
+		function () { defer.children = []; },
+		sources.map(
+		    function(source) {
+			chrome.extension.sendRequest(
+			    source.extensionId,
+			    {
+				type: "candidates",
+				name: source.name,
+				args: [ source.regex ? "" : [] ]
+			    },
+			    function(candidates) {
+				defer.children.push(
+				    Deferred.chain(
+					function () {
+					    return deferred_transform_candidates(
+						source, candidates
+					    );
+					},
+					function (transformed) {
+					    transformed.forEach(
+						function(x){
+						    x.element = $(x.element)[0];
+						}
+					    );
+					    [].push.apply(
+						source.transformed_candidates,
+						transformed
+					    );
+					},
+					function () { return Deferred.wait(0); },
+					function () { redisplay("", []); }
+				    )
+				);
+			    }
+			);
+		    }
+		)
+	    );
+	}
     );
-    var defer = current_params.defer = Deferred.parallel(
-        sources.map(
-            function(source) {
-                return Deferred.next(
-                    function() {
-                        ((typeof (source.candidates) !== "function")
-                         ? function(callback) { callback(source.candidates); }
-                         : source.candidates) (
-                            function (candidates) {
-                                defer.children.push(
-                                    Deferred.chain(
-                                        function () {
-                                            return deferred_transform_candidates(
-                                                source, candidates
-                                            );
-                                        },
-                                        function () { return Deferred.wait(0); },
-                                        function () { redisplay("", []); }
-                                    )
-                                );
-                            }
-                            ,source.regex ? "" : []
-                        );
-                    }
-                );
-            }
-        )
-    );
-    defer.children = [];
-    defer.canceller = // XXX not open api
-        function () {
-	    (this.canceller || function () {})();
-            defer.canceled = true;
-            defer.children.forEach(function(d) { d.cancel(); });
-        };
 }
 
 function deferred_transform_candidates (source, candidates) {
-    return Deferred.next(
-        function () {
-            var list = source.candidates_transformer(candidates);
-            list.forEach(
-                function(cand) {
-                    if(!cand.element) cand.element = $("<li>").text(cand.name);
-                }
-            );
-            [].push.apply(source.transformed_candidates, list);
-        }
+    return Deferred.chrome.extension.sendRequest(
+	source.extensionId,
+	{
+	    type: "candidatesTransformer",
+	    name: source.name,
+	    args: [ candidates ]
+	}
     );
 }
 
@@ -495,7 +366,7 @@ function redisplay(reg, regs) {
         var source = params.sources[i];
         ++c;
         $("#anychrome_candidates").append(
-            $("<li>").text(source.name).addClass("anychrome_section")
+            $("<li>").text(source.title).addClass("anychrome_section")
         );
         var cands = source.transformed_candidates;
         var m = cands.length;
@@ -629,36 +500,61 @@ function _cand(elem) {
     return current_params.sources[source_index].transformed_candidates[cand_index];
 }
 
-function do_first_action() {
-    var cands = marked_cands();
-    if (cands.length == 0) cands = [ _cand(_selected_element()) ];
-    var source = current_params.sources[$(cands[0].element).attr("data-source-index")];
 
-    clean();
-    source.actions[0].fn(cands.map(function(cand) { return cand.entity; }));
+function close_popup_html () {
+    chrome.tabs.query(
+        {
+            url: chrome.extension.getURL('trigger.html')
+        }, function (tabs) {
+            if (tabs.length == 0) return;
+            Deferred.parallel(
+                tabs.map( function(tab) { return Deferred.chrome.tabs.remove(tab.id); } )
+            ).next(
+                function() {
+                    // if (window_id) fail(window_id);
+                    chrome.windows.getLastFocused(
+                        function(_popup_window) {
+			    get_return_window_id(
+				function (_window_id) {
+				    chrome.windows.update(
+					_window_id,
+					{ focused:true },
+					function() {
+                                            chrome.windows.update(
+                                                _popup_window.id,
+                                                { focused:true }
+                                            );
+                                        }
+                                    );
+                                }
+                            );
+                        }
+                    );
+                }
+            );
+        }
+    );
 }
 
-function get_return_window (succ) {
-    console.log("last_focused");
-    console.log(last_focused_window);
-    Deferred.chain(
-        last_window_ids.map(
-            function(window_id) {
-                var d = new Deferred();
-                chrome.windows.get(
-                    window_id,
-                    function(x) {
-                        if (typeof x === "undefined" || x.id === last_focused_window.id) {
-                            d.call();
-                        } else {
-                            succ(x);
-                            d.fail();
-                        }
-                    }
-                );
-                return d;
-            }
-        )
+var lastFocusedWindow;
+$(
+    function() {
+        chrome.windows.getLastFocused(
+            function(_window) {
+                lastFocusedWindow = _window;
+	    }
+	);
+    }
+);
+
+function get_return_window_id (callback) {
+    chrome.extension.sendRequest(
+	extensionId,
+	{
+	    type: "getPreviousFocusedWindowId",
+	    excludeIds: [ lastFocusedWindow.id ]
+	},
+	callback
     );
 }
 
@@ -667,16 +563,14 @@ function abort() {
     chrome.windows.getCurrent(
 	function(_window) {
 	    if (_window.type === "popup")
-		get_return_window(
-		    function(_window) {
-			console.log("fail");
-			console.log(_window.id);
+		get_return_window_id(
+		    function(_window_id) {
 			chrome.windows.update(
-			    _window.id,
+			    _window_id,
 			    { focused: true }
 			);
 		    }
-		)
+		);
 	    else
 		window.close();
 	}
@@ -694,6 +588,27 @@ function clean() {
     $("#anychrome_query").attr("value", "");
 }
 
+function do_first_action() {
+    var cands = marked_cands();
+    if (cands.length == 0) cands = [ _cand(_selected_element()) ];
+    var source = current_params.sources[$(cands[0].element).attr("data-source-index")];
+
+    clean();
+
+    chrome.extension.sendRequest(
+	source.extensionId,
+	{
+	    type: "actions",
+	    name: source.name,
+	    args : [
+		0,
+		cands.map( function(cand) { return cand.entity; } )
+	    ]
+	}
+    );
+}
+
+
 function select_action() {
     var cands = marked_cands();
     if (cands.length == 0) cands = [ _cand(_selected_element()) ];
@@ -701,36 +616,49 @@ function select_action() {
     if (source.actions.length === 1) return do_first_action();
 
     clean();
-    anychrome(
+    Anychrome.defineSource(
         {
-            sources: [
+            name: "action",
+	    title: "Action",
+            candidates: source.actions,
+            candidatesTransformer: function(actions) {
+                return actions.map(
+                    function(action,i) {
+                        return {
+                            id: i,
+                            name: action.name,
+                            entity: i
+                        };
+                    }
+                );
+            },
+            actions: [
                 {
-                    name: "Actions",
-                    candidates: source.actions,
-                    candidates_transformer: function(actions) {
-                        return actions.map(
-                            function(action) {
-                                return {
-                                    id: action.name,
-                                    name: action.name,
-                                    entity: action
-                                };
-                            }
-                        );
-                    },
-                    actions: [
-                        {
-                            icon: "",
-                            name: "Apply",
-                            fn  : function (actions) {
-                                actions[0].fn(cands.map(function(cand) { return cand.entity; }));
-                            }
-                        }
-                    ]
+                    icon: "",
+                    name: "Apply",
+                    fn  : function (actionIndexes) {
+			chrome.extension.sendRequest(
+			    source.extensionId,
+			    {
+				type: "actions",
+				name: source.name,
+				args : [
+				    i,
+				    cands.map(
+					function(cand) {
+					    return cand.entity;
+					}
+				    )
+				]
+			    },
+			    function () {}
+			);
+                    }
                 }
             ]
         }
     );
+    anychrome({ sources: [ [ undefined, 'action' ] ] });
     $("#anychrome_query").focus();
     return undefined;
 }

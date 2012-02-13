@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <script type="text/javascript" src="jsdeferred.js"></script>
+  <script type="text/javascript" src="background.js"></script>
+  <script>
+    window.addEventListener('load', function() {
+      var iframe = document.createElement('iframe');
+      iframe.src = "bundle-sources.html";
+      document.body.appendChild(iframe);
+    });
+  </script>
+  <body></body>
+</html>

@@ -421,13 +421,13 @@ function highlight (source, reg, regs, cand) {
         for( var i = 0; i < n; ++i )
             if (node.nodeValue.match(regs[i]))
                 flag[i] = true;
-        node.splitText(m.index);
-        node = node.nextSibling;
-        node.splitText(m[0].length);
-        var surround = document.createElement("span");
-        node.parentNode.replaceChild(surround, node);
-        surround.appendChild(node);
-        surround.className = "anychrome_highlighted";
+        // node.splitText(m.index);
+        // node = node.nextSibling;
+        // node.splitText(m[0].length);
+        // var surround = document.createElement("span");
+        // node.parentNode.replaceChild(surround, node);
+        // surround.appendChild(node);
+        // surround.className = "anychrome_highlighted";
     }
     if (source.delayed) return true;
     for( var i = 0; i < n; ++i )

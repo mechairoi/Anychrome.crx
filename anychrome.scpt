@@ -17,7 +17,7 @@ chrome.windows.getCurrent(
                     function(tab) {
                         chrome.tabs.update(tab.id,{
                             selected: true,
-                            url: 'chrome-extension://epmnohbjmpanknlignaginogcoiefcac/popup.html#{\"_open_from\": \"applescript\", \"sources\": [\"tab\", \"history\"]}'
+                            url: 'chrome-extension://epmnohbjmpanknlignaginogcoiefcac/popup.html#{\"_open_from\": \"applescript\", \"sources\": [[false, \"tab\"], [false, \"history_day\"], [false, \"history_week\"], [false, \"history_month\"]]}'
                         });
                     }
                 );
@@ -36,9 +36,9 @@ chrome.windows.getCurrent(
                         execute javascript "
 (function() {
     var width = Math.min(window.innerWidth, 600);
-    var window_bar_height = 50; // XXX OSX
+    var window_bar_height = 50;
     window.open(
-        'chrome-extension://epmnohbjmpanknlignaginogcoiefcac/popup.html#{\"_open_from\": \"applescript\", \"sources\": [\"tab\", \"history\"]}',
+        'chrome-extension://epmnohbjmpanknlignaginogcoiefcac/popup.html#{\"_open_from\": \"applescript\", \"sources\": [[false, \"tab\"], [false, \"history_day\"], [false, \"history_week\"], [false, \"history_month\"]]}',
         'anychrome',
         'width=' + width + ', height=' + (window.innerHeight - window_bar_height) + ', top=' + (window.screenTop + 72) + ', left=' + (window.screenLeft + window.innerWidth - width));
 })();"

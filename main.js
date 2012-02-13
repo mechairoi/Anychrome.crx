@@ -119,7 +119,7 @@ $( function() {
                        // anychrome_force_update();
                        return false;
                    } else if (e.keyCode == 71) { // C-g
-                       abort();
+                       abort(function(){});
                        return false;
                    } else if (e.keyCode == 73) { // C-i
                        select_action();
@@ -278,7 +278,11 @@ function deferred_transform_display (source, candidates, reg, regs) {
 	},
 	function (transformed) {
 	    transformed.forEach(
-		function(x) { x.element = $(x.element)[0]; }
+		function(x) {
+		    x.element = x.element
+			? $(x.element)[0]
+		        : $("<li>").text(x.name)[0];
+		}
 	    );
 	    [].push.apply(
 		source.transformed_candidates,
@@ -448,8 +452,8 @@ function marked_cands() {
     current_params.sources.forEach(
         function (source) {
             with (source) {
-                for (id in marked_candidates) {
-                    cands.push(marked_candidates[id]);
+                for (id in source.marked_candidates) {
+                    cands.push(source.marked_candidates[id]);
                 }
             }
         }
@@ -571,7 +575,7 @@ function get_return_window_id (callback) {
     );
 }
 
-function abort() {
+function abort(callback) {
     clean();
     chrome.windows.getCurrent(
 	function(_window) {
@@ -582,10 +586,13 @@ function abort() {
 			    _window_id,
 			    { focused: true }
 			);
+			callback();
 		    }
 		);
-	    else
+	    else {
 		window.close();
+		callback();
+	    }
 	}
     );
 }
@@ -606,17 +613,19 @@ function do_first_action() {
     if (cands.length == 0) cands = [ _cand(_selected_element()) ];
     var source = current_params.sources[$(cands[0].element).attr("data-source-index")];
 
-    clean();
-
-    chrome.extension.sendRequest(
-	source.extensionId,
-	{
-	    type: "actions",
-	    name: source.name,
-	    args : [
-		0,
-		cands.map( function(cand) { return cand.entity; } )
-	    ]
+    abort(
+	function() {
+	    chrome.extension.sendRequest(
+		source.extensionId,
+		{
+		    type: "actions",
+		    name: source.name,
+		    args : [
+			[0],
+			cands.map( function(cand) { return cand.entity; } )
+		    ]
+		}
+	    );
 	}
     );
 }
@@ -628,22 +637,23 @@ function select_action() {
     var source = current_params.sources[$(cands[0].element).attr("data-source-index")];
     if (source.actions.length === 1) return do_first_action();
 
-    clean();
     Anychrome.defineSource(
         {
             name: "action",
 	    title: "Action",
             candidates: source.actions,
-            candidatesTransformer: function(actions) {
-                return actions.map(
-                    function(action,i) {
-                        return {
-                            id: i,
-                            name: action.name,
-                            entity: i
-                        };
-                    }
-                );
+            candidatesTransformer: function(callback, actions) {
+                callback(
+		    actions.map(
+			function(action,i) {
+                            return {
+				id: i,
+				name: action.name,
+				entity: i
+                            };
+			}
+                    )
+		);
             },
             actions: [
                 {
@@ -656,7 +666,7 @@ function select_action() {
 				type: "actions",
 				name: source.name,
 				args : [
-				    i,
+				    actionIndexes,
 				    cands.map(
 					function(cand) {
 					    return cand.entity;
@@ -669,9 +679,12 @@ function select_action() {
                     }
                 }
             ]
-        }
+        },
+	function(x){
+	    clean();
+	    anychrome({ sources: [ [ false, 'action' ] ] });
+	    $("#anychrome_query").focus();
+	}
     );
-    anychrome({ sources: [ [ undefined, 'action' ] ] });
-    $("#anychrome_query").focus();
     return undefined;
 }

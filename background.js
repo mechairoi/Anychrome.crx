@@ -24,6 +24,16 @@ chrome.extension.onRequest.addListener(
                 // XXX onRequestExternal
                 defineSource( sender.id, req.source );
                 sendResponse( { result: "ok" } );
+            } else if ((req.type == "candidates"
+                        || req.type == "candidatesTransformer"
+                        || req.type == "actions")
+                       && req.name == "action")
+            { // Echo ref. http://stackoverflow.com/questions/6972402/chrome-extensions-extension-sendrequest-message-passing-to-same-page
+                chrome.extension.sendRequest(
+                    extensionId,
+                    req,
+                    sendResponse
+                );
             } else {
                 return;
             }

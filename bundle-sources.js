@@ -46,7 +46,7 @@ Anychrome.defineSource ({
     ],
     regex: true,
     migemo: 3
-});
+}, function () {});
 
 $.each(
     {day:[0, 1], week: [1, 7], month: [7, 31]},
@@ -113,7 +113,7 @@ $.each(
 		    //     }
 		    // }
 		]
-	    }
+	    }, function () {}
 	);
     }
 );

@@ -52,7 +52,7 @@ if (typeof(Anychrome) == 'undefined') {
              actions: {}
 	 };
 	 var serializer = new XMLSerializer();
-	 Anychrome.defineSource = function (source) {
+	 Anychrome.defineSource = function (source, callback_) {
              var candidates = source.candidates;
 	     handlers.candidates[source.name]
                  = isaArray(candidates)
@@ -79,8 +79,8 @@ if (typeof(Anychrome) == 'undefined') {
 		 delete source.candidatesTransformer;
 	     }
 	     var actions = source.actions;
-	     handlers.actions[source.name] = function(callback, i, cands){
-		 actions[i].fn(cands);
+	     handlers.actions[source.name] = function(callback, is, cands){
+		 actions[is[0]].fn(cands);
 		 callback(true);
 	     };
 	     source.actions = actions.map(
@@ -90,14 +90,15 @@ if (typeof(Anychrome) == 'undefined') {
 		 extensionId, {
 		     type: "defineSource",
 		     source: source
-		 }
+		 },
+		 callback_
 	     );
 	 };
 	 chrome.extension.onRequest.addListener( // XXX onRequestExternal
 	     function(req, sender, sendResponse) {
 		 if (sender.id !== extensionId) return;
-                 if (typeof(handlers[req.type])
-                     == 'undefined') return;
+                 if (typeof(handlers[req.type]) == 'undefined') return;
+                 if (typeof(handlers[req.type][req.name]) == 'undefined') return;
                  handlers[req.type][req.name].apply(
 		     null, [ sendResponse ].concat(req.args)
                  );

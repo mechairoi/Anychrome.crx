@@ -380,7 +380,8 @@ function redisplay(reg, regs) {
                 $(cand.element).attr("data-cand-id", cand_id(cand));
                 $(cand.element).removeClass((k % 2 === 1) ? "anychrome_odd" : "anychrome_even");
                 $(cand.element).addClass((k % 2 === 1) ? "anychrome_even" : "anychrome_odd");
-		if (i < selected_source_index
+		if (!closest_element
+		    || i < selected_source_index
 		    || (i == selected_source_index
 			&& j <= selected_cand_index))
 		    closest_element = cand.element;

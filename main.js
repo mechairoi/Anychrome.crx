@@ -392,7 +392,7 @@ function redisplay(reg, regs) {
         }
     }
     $(closest_element).addClass("anychrome_selected");
-    scroll_if_require();
+    scroll_if_require(400);
 }
 
 function highlight (source, reg, regs, cand) {
@@ -468,7 +468,7 @@ function select_next(){
         $(_selected_element()).removeClass("anychrome_selected");
         $(next).addClass("anychrome_selected");
     }
-    scroll_if_require();
+    scroll_if_require(0);
 }
 function select_prev(){
     var prev = _selected_element().previousSibling;
@@ -479,17 +479,17 @@ function select_prev(){
         $(_selected_element()).removeClass("anychrome_selected");
         $(prev).addClass("anychrome_selected");
     }
-    scroll_if_require();
+    scroll_if_require(0);
 }
-function scroll_if_require () {
+function scroll_if_require (wait) {
     var ul = $("#anychrome_candidates");
     var top = ul.scrollTop();
     var height = ul.height();
     var y = $(_selected_element()).position().top;
     if ( y <= 60 ) {
-	ul.scrollTop(top + y - 60);
+	ul.animate({scrollTop: top + y - 60}, wait);
     } else if ( height - 30 < y ) {
-	ul.scrollTop(top + y - height + 30);
+	ul.animate({scrollTop: top + y - height + 30}, wait);
     }
 }
 function toggle_mark(){

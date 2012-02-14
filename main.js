@@ -65,6 +65,10 @@ function getMigemoRegex (q, threshold) {
   return d;
 }
 
+function setFixedWidth() {
+    $('body').addClass('fixed-width');
+}
+
 var currentParams;
 $( function() {
   var locationHash = {};
@@ -75,6 +79,8 @@ $( function() {
   document.location.hash = "";
   if (locationHash._open_from === "html")
     closePopupHtml();
+  if (locationHash._open_from === undefined) // XXX: browser action
+    setFixedWidth();
 
   // $(window).bind("blur", function() { clean(); } );
   $(window).bind(
